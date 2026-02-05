@@ -22,7 +22,7 @@
 	},
 	"incompatibilities": {
 		"sh1ne_dev.geometrize2gd": {
-			"version": "<1.2.7",
+			"version": "<=1.2.6",
 			"importance": "superseded"
 		}
 	}
