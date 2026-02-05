@@ -1,6 +1,4 @@
 #include "ImportPopup.h"
-#include "Geode/loader/Event.hpp"
-#include "Geode/loader/Log.hpp"
 #include "Geode/utils/file.hpp"
 #include <arc/future/Future.hpp>
 
@@ -47,19 +45,19 @@ bool ImportPopup::init(CCArray* selectedObj) {
     this->m_fileLabel->setVisible(false);
 
     auto importJsonSpr = ButtonSprite::create("Select File");
-    auto importJsonBtn = CCMenuItemSpriteExtra::create(
+    this->m_selectBtn = CCMenuItemSpriteExtra::create(
         importJsonSpr, this, menu_selector(ImportPopup::importJSON)
     );
-    importJsonBtn->setID("import-btn");
-    importJsonBtn->setPosition(importJsonBtn->getPosition() + ImportPopup::m_popupSize / 2);
+    this->m_selectBtn->setID("import-btn");
+    this->m_selectBtn->setPosition(this->m_selectBtn->getPosition() + ImportPopup::m_popupSize / 2);
 
     auto changeJsonSpr = ButtonSprite::create("Change File");
-    auto changeJsonBtn = CCMenuItemSpriteExtra::create(
+    this->m_changeBtn = CCMenuItemSpriteExtra::create(
         changeJsonSpr, this, menu_selector(ImportPopup::importJSON)
     );
-    changeJsonBtn->setVisible(false);
-    changeJsonBtn->setPosition({ImportPopup::m_popupSize.width / 2, ImportPopup::m_popupSize.height / 2 + 90.f});
-    changeJsonBtn->setID("change-btn");
+    this->m_changeBtn->setVisible(false);
+    this->m_changeBtn->setPosition({ImportPopup::m_popupSize.width / 2, ImportPopup::m_popupSize.height / 2 + 90.f});
+    this->m_changeBtn->setID("change-btn");
 
     auto parseSpr =  ButtonSprite::create("Create");
     auto parseBtn = CCMenuItemSpriteExtra::create(
@@ -96,8 +94,8 @@ bool ImportPopup::init(CCArray* selectedObj) {
     this->m_mainLayer->addChild(drawLabel);
     this->m_mainLayer->addChild(zLayerLabel);
 
-    this->m_buttonMenu->addChild(importJsonBtn);
-    this->m_buttonMenu->addChild(changeJsonBtn);
+    this->m_buttonMenu->addChild(this->m_selectBtn);
+    this->m_buttonMenu->addChild(this->m_changeBtn);
     this->m_buttonMenu->addChild(parseBtn);
     this->m_buttonMenu->addChild(this->m_drawScaleInput);
     this->m_buttonMenu->addChild(this->m_zLayerInput);
@@ -116,49 +114,42 @@ void ImportPopup::importJSON(CCObject* sender) {
         std::nullopt,
         {filter}
     };
+
+    // this->m_selectBtn->setEnabled(false);
+    // this->m_changeBtn->setEnabled(false);
+    // this->m_closeBtn->setEnabled(false);
     
     m_pickHolder.spawn(
         file::pick(file::PickMode::OpenFile, options),
         [this](file::PickResult result) {
-            log::info("hey");
-
             // Checks does Result is empty or not
-            if(result.isErr()) {
+            if (result.isErr()) {
                 return Notification::create(
                     fmt::format("Failed to open the file. Error: {}", result.err()),
                     NotificationIcon::Error
                 )->show();
             }
-            // Unwraps result into std::filesystem::path and checks does it end with ".json"
+
             auto path = result.unwrap();
+            if (!path.has_value()) {
+                return;
+            }
+
             if (path->string().ends_with(".json")) {
 
-                // Reads the json file and converts output to std::string
-                unsigned long fileSize = 0;
-                unsigned char* buffer = CCFileUtils::sharedFileUtils()->getFileData(
-                    path->string().c_str(),
-                    "rb",
-                    &fileSize
-                );
-                std::string data = std::string(reinterpret_cast<char*>(buffer), fileSize);
-
-                // Parses json
-                auto jsonResult = matjson::parse(data);
-                if (jsonResult.isErr()) {
-                    return Notification::create(
-                        "Failed to parse JSON!",
-                        NotificationIcon::Error
-                    )->show();
+                // Loading json
+                auto json = geode::utils::file::readJson(*path);
+                if (json) {
+                    this->m_jsonSets = json.unwrap();
                 }
-                this->m_jsonSets = jsonResult.unwrap();
 
-                if (auto temp = this->m_jsonSets["shapes"].asArray()) {
+                if (auto temp = this->m_jsonSets["shapes"].asArray())
                     this->m_jsonSets = temp.unwrap();
-                } else if (auto temp = this->m_jsonSets.asArray()) {
+                else if (auto temp = this->m_jsonSets.asArray())
                     this->m_jsonSets = temp.unwrap();
-                } else {
-                    co_return Notification::create(
-                        "Failed to parse \"shapes\" key as array!",
+                else {
+                    return Notification::create(
+                        "Failed to parse the file! It may be empty.",
                         NotificationIcon::Error
                     )->show();
                 }
@@ -168,19 +159,18 @@ void ImportPopup::importJSON(CCObject* sender) {
                     auto objType = obj["type"].asInt();
                     auto objScore = obj["score"].asDouble();
 
-                    if (!objType) {
+                    if (!objType)
                         continue;
-                    }
-                    if (!objScore) {
+
+                    if (!objScore)
                         continue;
-                    }
-                    if (!this->m_validTypes.contains(
-                        objType.unwrap())) {
+
+                    if (!this->m_validTypes.contains(objType.unwrap()))
                         continue;
-                    }
-                    if (objScore.unwrap() <= 0) {
+
+                    if (objScore.unwrap() <= 0)
                         continue;
-                    }
+
                     this->m_objsCount++;
                 }
 
@@ -188,7 +178,7 @@ void ImportPopup::importJSON(CCObject* sender) {
                 auto fileText = fmt::format("File: {}", path->filename());
                 this->m_countLabel->setString(countText.c_str());
                 this->m_fileLabel->setString(fileText.c_str());
-                this->m_buttonMenu->getChildByID("import-btn")->setVisible(false);
+                this->m_selectBtn->setVisible(false);
                 this->m_buttonMenu->getChildByID("change-btn")->setVisible(true);
                 this->m_mainLayer->getChildByID("draw-scale-label")->setVisible(true);
                 this->m_mainLayer->getChildByID("zlayer-label")->setVisible(true);
@@ -213,10 +203,6 @@ void ImportPopup::importJSON(CCObject* sender) {
             return;
         }
     );
-
-    // Binding a function to listener
-    // m_pickListener.bind([this](Task<Result<std::filesystem::path>>::Event* event) );
-    // m_pickListener.setFilter(file::pick(file::PickMode::OpenFile, options));
 }
 
 // Parses the objects from Geometrize to GD format and places the objects inside GD Editor
@@ -235,15 +221,12 @@ void ImportPopup::parseAndPlace() {
         auto redResult = obj["color"][0].asDouble();
         auto blueResult = obj["color"][1].asDouble();
         auto greenResult = obj["color"][2].asDouble();
-        int objId = m_CircleId;
 
-        // Parsing object's general properties
-        // if (auto objType = obj["type"].asInt()) {
-        //     if (this->m_squareTypes.contains(
-        //         objType.unwrap())) {
-        //         objId = m_SquareId;
-        //     }
-        // }
+        // Validating types
+        if (auto objType = obj["type"].asInt())
+            if (!this->m_validTypes.contains(objType.unwrap())) 
+                continue;
+
         if (auto posXResult = obj["data"][0].asDouble()) {
             posX = posXResult.unwrap() * this->m_drawScale + this->m_centerObj->getPositionX();
         }
@@ -276,7 +259,7 @@ void ImportPopup::parseAndPlace() {
         // Parsing objects to gd format and increasing Z Order
         this->m_objsString << fmt::format(
             "1,{},2,{},3,{},128,{},129,{},6,{},41,1,42,1,21,1010,22,1010,43,{}a{}a{}a1a1,44,{}a{}a{}a1a1,25,{},372,1;",
-            objId, posX, posY, scaleX, scaleY, rotation,
+            m_CircleId, posX, posY, scaleX, scaleY, rotation,
             h,s,v, h,s,v, this->m_zOrder
         );
         this->m_zOrder++;

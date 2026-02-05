@@ -19,12 +19,11 @@ protected:
     CCLabelBMFont* m_fileLabel = nullptr;
     CCLabelBMFont* m_countLabel = nullptr;
     TextInput* m_drawScaleInput = nullptr;
+    CCMenuItemSpriteExtra* m_selectBtn = nullptr;
+    CCMenuItemSpriteExtra* m_changeBtn = nullptr;
     static constexpr int m_CircleId = 497;
-    static constexpr int m_SquareId = 495;
-    const std::set<int> m_squareTypes = {0, 1, 2};
-    const std::set<int> m_validTypes = {5, 3, 4, 32, 8, 16}; // 0, 1, 2
+    const std::set<int> m_validTypes = {5, 3, 4, 32, 8, 16};
     static constexpr CCSize m_popupSize = CCSize(385.f, 245.f);
-    // EventListener<Task<Result<std::filesystem::path>>> m_pickListener;
     async::TaskHolder<file::PickResult> m_pickHolder;
 protected:
     void parseAndPlace();
