@@ -1,6 +1,8 @@
 #include "ImportPopup.h"
+
 #include "Geode/utils/file.hpp"
 #include <arc/future/Future.hpp>
+#include "../types/ScopeExit.h"
 
 ImportPopup* ImportPopup::create(CCArray* selectedObj) {
     ImportPopup* ret = new ImportPopup();
@@ -114,14 +116,15 @@ void ImportPopup::importJSON(CCObject* sender) {
         std::nullopt,
         {filter}
     };
-
-    // this->m_selectBtn->setEnabled(false);
-    // this->m_changeBtn->setEnabled(false);
-    // this->m_closeBtn->setEnabled(false);
+    this->m_buttonMenu->setEnabled(false);
     
     m_pickHolder.spawn(
         file::pick(file::PickMode::OpenFile, options),
         [this](file::PickResult result) {
+            auto enableBtns = ScopeExit([this]() {
+                this->m_buttonMenu->setEnabled(true);
+            });
+
             // Checks does Result is empty or not
             if (result.isErr()) {
                 return Notification::create(
@@ -136,7 +139,6 @@ void ImportPopup::importJSON(CCObject* sender) {
             }
 
             if (path->string().ends_with(".json")) {
-
                 // Loading json
                 auto json = geode::utils::file::readJson(*path);
                 if (json) {
@@ -199,8 +201,6 @@ void ImportPopup::importJSON(CCObject* sender) {
                     NotificationIcon::Error
                 )->show();
             }
-
-            return;
         }
     );
 }
