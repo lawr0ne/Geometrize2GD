@@ -1,5 +1,5 @@
 # Geometrize2GD
-##### This is an unofficial fork, which continues maintanence over original mod.
+##### This is an unofficial fork, which continues maintanence over the original mod.
 
 ### [User Guide](https://github.com/lawr0ne/Geometrize2GD/blob/main/GUIDE.md)
 
