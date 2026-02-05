@@ -1,10 +1,13 @@
+#include "Geode/utils/async.hpp"
+#include "Geode/utils/file.hpp"
 #include <Geode/ui/TextInput.hpp>
+#include <Geode/ui/Popup.hpp>
 #include <matjson.hpp>
 #include <sstream>
 
 using namespace geode::prelude;
 
-class ImportPopup : public geode::Popup<cocos2d::CCArray*>, TextInputDelegate {
+class ImportPopup : public geode::Popup, TextInputDelegate {
 protected:
     int m_zOrder = 0;
     int m_objsCount = 0;
@@ -21,13 +24,14 @@ protected:
     const std::set<int> m_squareTypes = {0, 1, 2};
     const std::set<int> m_validTypes = {5, 3, 4, 32, 8, 16}; // 0, 1, 2
     static constexpr CCSize m_popupSize = CCSize(385.f, 245.f);
-    EventListener<Task<Result<std::filesystem::path>>> m_pickListener;
+    // EventListener<Task<Result<std::filesystem::path>>> m_pickListener;
+    async::TaskHolder<file::PickResult> m_pickHolder;
 protected:
     void parseAndPlace();
     void importJSON(cocos2d::CCObject* sender);
     void checkAlert(cocos2d::CCObject* sender);
     void textChanged(CCTextInputNode *p0) override;
-    bool setup(cocos2d::CCArray* selectedObj) override;
+    bool init(cocos2d::CCArray* selectedObj);
     void rgbToHsv(float fR, float fG, float fB, float& fH, float& fS, float& fV);
 public:
     static ImportPopup* create(cocos2d::CCArray* selectedObj);

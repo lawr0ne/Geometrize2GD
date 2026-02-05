@@ -1,8 +1,12 @@
 #include "ImportPopup.h"
+#include "Geode/loader/Event.hpp"
+#include "Geode/loader/Log.hpp"
+#include "Geode/utils/file.hpp"
+#include <arc/future/Future.hpp>
 
 ImportPopup* ImportPopup::create(CCArray* selectedObj) {
     ImportPopup* ret = new ImportPopup();
-    if (ret && ret->initAnchored(385.f, 245.f, selectedObj)) {
+    if (ret && ret->init(selectedObj)) {
         ret->autorelease();
     } else {
         delete ret;
@@ -12,7 +16,9 @@ ImportPopup* ImportPopup::create(CCArray* selectedObj) {
 }
 
 // Setups the layer
-bool ImportPopup::setup(CCArray* selectedObj) {
+bool ImportPopup::init(CCArray* selectedObj) {
+    if (!Popup::init(385.f, 245.f)) return false;
+
     this->m_centerObj = CCArrayExt<GameObject*>(selectedObj)[0];
 
     this->m_countLabel = CCLabelBMFont::create("Objects: 0", "bigFont.fnt");
@@ -98,6 +104,8 @@ bool ImportPopup::setup(CCArray* selectedObj) {
     return true;
 }
 
+// void pickEventListener(Task<>::Event* event) 
+
 void ImportPopup::importJSON(CCObject* sender) {
     // Setting file pick options
     file::FilePickOptions::Filter filter = {
@@ -108,33 +116,27 @@ void ImportPopup::importJSON(CCObject* sender) {
         std::nullopt,
         {filter}
     };
+    
+    m_pickHolder.spawn(
+        file::pick(file::PickMode::OpenFile, options),
+        [this](file::PickResult result) {
+            log::info("hey");
 
-    // Binding a function to listener
-    m_pickListener.bind([this](Task<Result<std::filesystem::path>>::Event* event) {
-        // Notifies user if the file pick menu is just closed
-        if (event->isCancelled()) {
-            return Notification::create(
-                "Failed to open file (Task Cancelled)",
-                NotificationIcon::Error
-            )->show();
-        }
-        // Gets Result and checks if null
-        if (auto result = event->getValue()) {
             // Checks does Result is empty or not
-            if(result->isErr()) {
+            if(result.isErr()) {
                 return Notification::create(
-                    fmt::format("Failed to open file. Error: {}", result->err()),
+                    fmt::format("Failed to open the file. Error: {}", result.err()),
                     NotificationIcon::Error
                 )->show();
             }
             // Unwraps result into std::filesystem::path and checks does it end with ".json"
-            auto path = result->unwrap();
-            if (path.string().ends_with(".json")) {
+            auto path = result.unwrap();
+            if (path->string().ends_with(".json")) {
 
                 // Reads the json file and converts output to std::string
                 unsigned long fileSize = 0;
                 unsigned char* buffer = CCFileUtils::sharedFileUtils()->getFileData(
-                    path.string().c_str(),
+                    path->string().c_str(),
                     "rb",
                     &fileSize
                 );
@@ -155,7 +157,7 @@ void ImportPopup::importJSON(CCObject* sender) {
                 } else if (auto temp = this->m_jsonSets.asArray()) {
                     this->m_jsonSets = temp.unwrap();
                 } else {
-                    return Notification::create(
+                    co_return Notification::create(
                         "Failed to parse \"shapes\" key as array!",
                         NotificationIcon::Error
                     )->show();
@@ -183,7 +185,7 @@ void ImportPopup::importJSON(CCObject* sender) {
                 }
 
                 auto countText = fmt::format("Objects: {}", this->m_objsCount);
-                auto fileText = fmt::format("File: {}", event->getValue()->unwrap().filename());
+                auto fileText = fmt::format("File: {}", path->filename());
                 this->m_countLabel->setString(countText.c_str());
                 this->m_fileLabel->setString(fileText.c_str());
                 this->m_buttonMenu->getChildByID("import-btn")->setVisible(false);
@@ -207,9 +209,14 @@ void ImportPopup::importJSON(CCObject* sender) {
                     NotificationIcon::Error
                 )->show();
             }
+
+            return;
         }
-    });
-    m_pickListener.setFilter(file::pick(file::PickMode::OpenFile, options));
+    );
+
+    // Binding a function to listener
+    // m_pickListener.bind([this](Task<Result<std::filesystem::path>>::Event* event) );
+    // m_pickListener.setFilter(file::pick(file::PickMode::OpenFile, options));
 }
 
 // Parses the objects from Geometrize to GD format and places the objects inside GD Editor

@@ -1,17 +1,17 @@
 {
-	"geode": "4.5.0",
+	"geode": "5.0.0-alpha.1",
 	"gd": {
-		"win": "2.2074",
-		"android": "2.2074",
-		"mac": "2.2074",
-		"ios": "2.2074"
+		"win": "2.2081",
+		"android": "2.2081",
+		"mac": "2.2081",
+		"ios": "2.2081"
 	},
-	"version": "v1.2.6",
-	"id": "sh1ne_dev.geometrize2gd",
+	"version": "v1.2.7",
+	"id": "lawr0ne.geometrize2gd",
 	"name": "Geometrize2GD",
-	"developer": "sh1ne",
+	"developer": "lawr0ne",
 	"description": "Simple parser from Geometrize format to GD",
-	"links": {"source": "https://github.com/sh1ne-dev/Geometrize2GD"},
+	"links": {"source": "https://github.com/lawr0ne/Geometrize2GD"},
 	"tags": ["editor", "utility", "offline"],
 	"resources": {
 		"spritesheets": {
@@ -21,8 +21,8 @@
 		}
 	},
 	"incompatibilities": {
-		"shineua.geometrize2gd": {
-			"version": "<1.2.6",
+		"sh1ne_dev.geometrize2gd": {
+			"version": "<1.2.7",
 			"importance": "superseded"
 		}
 	}
