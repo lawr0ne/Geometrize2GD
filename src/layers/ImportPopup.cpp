@@ -1,8 +1,12 @@
 #include "ImportPopup.h"
 
+#include "Geode/cocos/cocoa/CCObject.h"
+#include "Geode/cocos/sprite_nodes/CCSprite.h"
+#include "Geode/ui/Popup.hpp"
 #include "Geode/utils/file.hpp"
 #include <arc/future/Future.hpp>
 #include "../types/ScopeExit.h"
+#include "Geode/utils/web.hpp"
 
 ImportPopup* ImportPopup::create(CCArray* selectedObj) {
     ImportPopup* ret = new ImportPopup();
@@ -69,6 +73,12 @@ bool ImportPopup::init(CCArray* selectedObj) {
     parseBtn->setVisible(false);
     parseBtn->setID("convert-btn");
 
+    auto helpSpr = CCSprite::createWithSpriteFrameName("GJ_helpBtn_001.png");
+    auto helpBtn = CCMenuItemSpriteExtra::create(
+        helpSpr, this, menu_selector(ImportPopup::onHelp)
+    );
+    helpBtn->setPosition(ImportPopup::m_popupSize);
+
     this->m_drawScaleInput = TextInput::create(50.f, "Float", "bigFont.fnt");
     this->m_drawScaleInput->setCommonFilter(CommonFilter::Float);
     this->m_drawScaleInput->setMaxCharCount(5);
@@ -101,10 +111,20 @@ bool ImportPopup::init(CCArray* selectedObj) {
     this->m_buttonMenu->addChild(parseBtn);
     this->m_buttonMenu->addChild(this->m_drawScaleInput);
     this->m_buttonMenu->addChild(this->m_zLayerInput);
+    this->m_buttonMenu->addChild(helpBtn);
     return true;
 }
 
-// void pickEventListener(Task<>::Event* event) 
+void ImportPopup::onHelp(CCObject* sender) {
+    geode::createQuickPopup(
+        "Help", "Do you want to open the guide?",
+        "Yes", "No",
+        [](auto* self, bool btn2) {
+            if (!btn2)
+                geode::utils::web::openLinkInBrowser("https://github.com/lawr0ne/Geometrize2GD/blob/main/GUIDE.md");
+        }
+    );
+}
 
 void ImportPopup::importJSON(CCObject* sender) {
     // Setting file pick options

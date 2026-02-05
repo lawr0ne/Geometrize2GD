@@ -1,3 +1,4 @@
+#include "Geode/cocos/cocoa/CCObject.h"
 #include "Geode/utils/async.hpp"
 #include "Geode/utils/file.hpp"
 #include <Geode/ui/TextInput.hpp>
@@ -29,6 +30,7 @@ protected:
     void parseAndPlace();
     void importJSON(cocos2d::CCObject* sender);
     void checkAlert(cocos2d::CCObject* sender);
+    void onHelp(cocos2d::CCObject* sender);
     void textChanged(CCTextInputNode *p0) override;
     bool init(cocos2d::CCArray* selectedObj);
     void rgbToHsv(float fR, float fG, float fB, float& fH, float& fS, float& fV);
