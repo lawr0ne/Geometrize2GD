@@ -1,0 +1,6 @@
+[submodule "thirdparty/stb/stb"]
+	path = thirdparty/stb/stb
+	url = https://github.com/nothings/stb
+[submodule "thirdparty/geometrize/geometrize-lib"]
+	path = thirdparty/geometrize/geometrize-lib
+	url = https://github.com/Tw1ddle/geometrize-lib
