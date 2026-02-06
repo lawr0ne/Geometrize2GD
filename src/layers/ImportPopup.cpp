@@ -21,31 +21,31 @@ ImportPopup* ImportPopup::create(CCArray* selectedObj) {
 
 // Setups the layer
 bool ImportPopup::init(CCArray* selectedObj) {
-    if (!Popup::init(385.f, 245.f)) return false;
+    if (!Popup::init(this->m_popupSize.width, this->m_popupSize.height)) return false;
 
     this->m_centerObj = CCArrayExt<GameObject*>(selectedObj)[0];
 
     this->m_countLabel = CCLabelBMFont::create("Objects: 0", "bigFont.fnt");
-    this->m_countLabel->setPosition({ImportPopup::m_popupSize.width / 2, ImportPopup::m_popupSize.height / 2 - 65.f});
+    this->m_countLabel->setPosition({this->m_popupSize.width / 2, this->m_popupSize.height / 2 - 65.f});
     this->m_countLabel->setVisible(false);
     this->m_countLabel->setID("count-label");
     this->m_countLabel->setScale(0.4);
 
     auto drawLabel = CCLabelBMFont::create("Scale:", "bigFont.fnt");
-    drawLabel->setPosition({ImportPopup::m_popupSize.width / 2 + 65.f, ImportPopup::m_popupSize.height / 2 + 15.f});
+    drawLabel->setPosition({this->m_popupSize.width / 2 + 65.f, this->m_popupSize.height / 2 + 15.f});
     drawLabel->setVisible(false);
     drawLabel->setID("draw-scale-label");
     drawLabel->setScale(0.5);
 
     auto zLayerLabel = CCLabelBMFont::create("Z-Layer\nOffset:", "bigFont.fnt");
-    zLayerLabel->setPosition({ImportPopup::m_popupSize.width / 2 - 65.f, ImportPopup::m_popupSize.height / 2 + 15.f});
+    zLayerLabel->setPosition({this->m_popupSize.width / 2 - 65.f, this->m_popupSize.height / 2 + 15.f});
     zLayerLabel->setVisible(false);
     zLayerLabel->setID("zlayer-label");
     zLayerLabel->setScale(0.325);
 
     this->m_fileLabel = CCLabelBMFont::create("", "bigFont.fnt");
     this->m_fileLabel->setColor({0,255,0});
-    this->m_fileLabel->setPosition(ImportPopup::m_popupSize.width / 2, ImportPopup::m_popupSize.height / 2 + 60.f);
+    this->m_fileLabel->setPosition(this->m_popupSize.width / 2, this->m_popupSize.height / 2 + 60.f);
     this->m_fileLabel->setScale(0.45);
     this->m_fileLabel->setID("file-label");
     this->m_fileLabel->setVisible(false);
@@ -55,14 +55,14 @@ bool ImportPopup::init(CCArray* selectedObj) {
         importJsonSpr, this, menu_selector(ImportPopup::importJSON)
     );
     this->m_selectBtn->setID("import-btn");
-    this->m_selectBtn->setPosition(this->m_selectBtn->getPosition() + ImportPopup::m_popupSize / 2);
+    this->m_selectBtn->setPosition(this->m_selectBtn->getPosition() + this->m_popupSize / 2);
 
     auto changeJsonSpr = ButtonSprite::create("Change File");
     this->m_changeBtn = CCMenuItemSpriteExtra::create(
         changeJsonSpr, this, menu_selector(ImportPopup::importJSON)
     );
     this->m_changeBtn->setVisible(false);
-    this->m_changeBtn->setPosition({ImportPopup::m_popupSize.width / 2, ImportPopup::m_popupSize.height / 2 + 90.f});
+    this->m_changeBtn->setPosition({this->m_popupSize.width / 2, this->m_popupSize.height / 2 + 90.f});
     this->m_changeBtn->setID("change-btn");
 
     auto parseSpr =  ButtonSprite::create("Create");
@@ -77,14 +77,14 @@ bool ImportPopup::init(CCArray* selectedObj) {
     auto helpBtn = CCMenuItemSpriteExtra::create(
         helpSpr, this, menu_selector(ImportPopup::onHelp)
     );
-    helpBtn->setPosition(ImportPopup::m_popupSize);
+    helpBtn->setPosition(this->m_popupSize);
 
     this->m_drawScaleInput = TextInput::create(50.f, "Float", "bigFont.fnt");
     this->m_drawScaleInput->setCommonFilter(CommonFilter::Float);
     this->m_drawScaleInput->setMaxCharCount(5);
     this->m_drawScaleInput->setString("1");
     this->m_drawScaleInput->setID("draw-input");
-    this->m_drawScaleInput->setPosition({ImportPopup::m_popupSize.width / 2 + 65.f,ImportPopup::m_popupSize.height / 2 - 15.f});
+    this->m_drawScaleInput->setPosition({this->m_popupSize.width / 2 + 65.f, this->m_popupSize.height / 2 - 15.f});
     this->m_drawScaleInput->setVisible(false);
     this->m_drawScaleInput->getInputNode()->setLabelPlaceholderScale(0.5);
     this->m_drawScaleInput->getInputNode()->setMaxLabelScale(0.6);
@@ -95,7 +95,7 @@ bool ImportPopup::init(CCArray* selectedObj) {
     this->m_zLayerInput->setMaxCharCount(5);
     this->m_zLayerInput->setString("0");
     this->m_zLayerInput->setID("zlayer-input");
-    this->m_zLayerInput->setPosition({ImportPopup::m_popupSize.width / 2 - 65.f, ImportPopup::m_popupSize.height / 2 - 15.f});
+    this->m_zLayerInput->setPosition({this->m_popupSize.width / 2 - 65.f, this->m_popupSize.height / 2 - 15.f});
     this->m_zLayerInput->setVisible(false);
     this->m_zLayerInput->getInputNode()->setLabelPlaceholderScale(0.6);
     this->m_zLayerInput->getInputNode()->setMaxLabelScale(0.6);
@@ -128,17 +128,17 @@ void ImportPopup::onHelp(CCObject* sender) {
 
 void ImportPopup::importJSON(CCObject* sender) {
     // Setting file pick options
-    file::FilePickOptions::Filter filter = {
+    file::FilePickOptions::Filter json_file = {
         .description = "Geometrize JSON Output",
         .files = { "*.json"}
     };
     file::FilePickOptions options = {
         std::nullopt,
-        {filter}
+        {json_file}
     };
     this->m_buttonMenu->setEnabled(false);
-    
-    m_pickHolder.spawn(
+
+    this->m_pickHolder.spawn(
         file::pick(file::PickMode::OpenFile, options),
         [this](file::PickResult result) {
             auto enableBtns = ScopeExit([this]() {
@@ -244,7 +244,7 @@ void ImportPopup::parseAndPlace() {
 
         // Validating types
         if (auto objType = obj["type"].asInt())
-            if (!this->m_validTypes.contains(objType.unwrap())) 
+            if (!this->m_validTypes.contains(objType.unwrap()))
                 continue;
 
         if (auto posXResult = obj["data"][0].asDouble()) {
@@ -392,5 +392,3 @@ void ImportPopup::textChanged(CCTextInputNode *p0) {
         this->m_zOrder = numUn;
     }
 }
-
-
