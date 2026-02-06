@@ -41,12 +41,10 @@ body:
     attributes:
       label: Extra fields
       options:
-        - label: I updated Geode to latest version.
+        - label: I updated Geode/Geode Launcher to latest version.
           required: true
-        - label: I updated Geode Launcher (Android) to latest version.
-          required: true
-        - label: I updated this mod to latest version.
+        - label: I updated this mod to the latest version.
           required: true
   - type: markdown
     attributes:
-      value: Thanks for reporting this bug. I'll try to fix this as soon as possible.
+      value: Thanks for reporting this bug. I'll try to fix it as soon as possible.
