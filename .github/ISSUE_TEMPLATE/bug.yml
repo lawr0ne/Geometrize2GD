@@ -23,7 +23,7 @@ body:
     id: description
     attributes:
       label: Describe your issue
-      placeholder: When I click here it happens this
+      placeholder: When I click here happens this
     validations:
       required: true
   - type: textarea
