@@ -55,3 +55,6 @@ cmake-build-relwithdebinfo-ninja--clang-cl/
 
 # clangd
 .cache/
+
+# cmake zed stuff
+__cmake_systeminformation/
