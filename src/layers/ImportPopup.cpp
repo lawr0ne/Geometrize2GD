@@ -200,6 +200,7 @@ void ImportPopup::importJSON(CCObject* sender) {
                 auto fileText = fmt::format("File: {}", path->filename());
                 this->m_countLabel->setString(countText.c_str());
                 this->m_fileLabel->setString(fileText.c_str());
+                this->m_fileLabel->limitLabelWidth(this->m_popupSize.width - 10, 0.45f, 0.2f);
                 this->m_selectBtn->setVisible(false);
                 this->m_buttonMenu->getChildByID("change-btn")->setVisible(true);
                 this->m_mainLayer->getChildByID("draw-scale-label")->setVisible(true);

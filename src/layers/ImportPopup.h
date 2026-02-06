@@ -24,7 +24,7 @@ protected:
     CCMenuItemSpriteExtra* m_changeBtn = nullptr;
     static constexpr int m_CircleId = 497;
     const std::set<int> m_validTypes = {5, 3, 4, 32, 8, 16};
-    static constexpr CCSize m_popupSize = CCSize(385.f, 245.f);
+    static constexpr CCSize m_popupSize = CCSize(275.f, 245.f);
     async::TaskHolder<file::PickResult> m_pickHolder;
 protected:
     void parseAndPlace();
