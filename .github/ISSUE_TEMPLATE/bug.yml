@@ -41,7 +41,7 @@ body:
     attributes:
       label: Extra fields
       options:
-        - label: I updated Geode/Geode Launcher to latest version.
+        - label: I updated Geode/Geode Launcher to the latest version.
           required: true
         - label: I updated this mod to the latest version.
           required: true
