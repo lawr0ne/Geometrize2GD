@@ -14,6 +14,9 @@ body:
         - Windows
         - Android64
         - Android32
+        - Mac (Intel)
+        - Mac (arm)
+        - iOS
     validations:
       required: true
   - type: textarea
