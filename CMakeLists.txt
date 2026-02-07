@@ -12,11 +12,9 @@ add_subdirectory(thirdparty)
 
 project(Geometrize2GD VERSION 1.0.0)
 
-add_library(${PROJECT_NAME} SHARED
-    src/main.cpp
-    src/layers/ImportPopup.cpp
-    # Add your cpp files here
-)
+file(GLOB_RECURSE SOURCES src/*.cpp)
+
+add_library(${PROJECT_NAME} SHARED ${SOURCES})
 
 target_link_libraries(${PROJECT_NAME}
     Geometrize::Geometrize

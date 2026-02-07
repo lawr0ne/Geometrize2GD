@@ -7,6 +7,7 @@
 #include <arc/future/Future.hpp>
 #include "../types/ScopeExit.h"
 #include "Geode/utils/web.hpp"
+#include "../core/jsonToGDO.h"
 
 ImportPopup* ImportPopup::create(CCArray* selectedObj) {
     ImportPopup* ret = new ImportPopup();
@@ -187,7 +188,7 @@ void ImportPopup::importJSON(CCObject* sender) {
                     if (!objScore)
                         continue;
 
-                    if (!this->m_validTypes.contains(objType.unwrap()))
+                    if (!core::json2gdo::m_validObjTypes.contains(objType.unwrap()))
                         continue;
 
                     if (objScore.unwrap() <= 0)
@@ -228,66 +229,10 @@ void ImportPopup::importJSON(CCObject* sender) {
 
 // Parses the objects from Geometrize to GD format and places the objects inside GD Editor
 void ImportPopup::parseAndPlace() {
-    for (auto obj : this->m_jsonSets) {
-        // Avoiding objects with zero score
-        auto objScore = obj["score"].asDouble();
-        if (!objScore || objScore.unwrap() <= 0) {
-            continue;
-        }
-
-        // Setting and initializing default properties if there is missing some
-        float posX = this->m_centerObj->getPositionX();
-        float posY = this->m_centerObj->getPositionY();
-        float scaleX = 1.f, scaleY = 1.f, rotation = 0.f;
-        auto redResult = obj["color"][0].asDouble();
-        auto blueResult = obj["color"][1].asDouble();
-        auto greenResult = obj["color"][2].asDouble();
-
-        // Validating types
-        if (auto objType = obj["type"].asInt())
-            if (!this->m_validTypes.contains(objType.unwrap()))
-                continue;
-
-        if (auto posXResult = obj["data"][0].asDouble()) {
-            posX = posXResult.unwrap() * this->m_drawScale + this->m_centerObj->getPositionX();
-        }
-        if (auto posYResult = obj["data"][1].asDouble()) {
-            posY = posYResult.unwrap() * this->m_drawScale + this->m_centerObj->getPositionY();
-        }
-        if (auto scaleXResult = obj["data"][2].asDouble()) {
-            scaleX = scaleXResult.unwrap() * this->m_drawScale / 4 * 0.16;
-        }
-        if (auto scaleYResult = obj["data"][3].asDouble()) {
-            scaleY = scaleYResult.unwrap() * this->m_drawScale / 4 * 0.16;
-        } else {
-            scaleY = scaleX;
-        }
-        if (auto rotationResult = obj["data"][4].asDouble()) {
-            rotation = -rotationResult.unwrap();
-        }
-
-        // Parsing colors
-        float h = 0.f, s = 0.f, v = 0.f;
-        if (redResult && blueResult && greenResult) {
-            this->rgbToHsv(
-                redResult.unwrap() / 255.f,
-                blueResult.unwrap() / 255.f,
-                greenResult.unwrap() / 255.f,
-                h,s,v
-            );
-        }
-
-        // Parsing objects to gd format and increasing Z Order
-        this->m_objsString << fmt::format(
-            "1,{},2,{},3,{},128,{},129,{},6,{},41,1,42,1,21,1010,22,1010,43,{}a{}a{}a1a1,44,{}a{}a{}a1a1,25,{},372,1;",
-            m_CircleId, posX, posY, scaleX, scaleY, rotation,
-            h,s,v, h,s,v, this->m_zOrder
-        );
-        this->m_zOrder++;
-    }
+    auto objsString = core::json2gdo::parse(this->m_jsonSets, this->m_centerObj, this->m_drawScale, this->m_zOrder);
 
     // Checking if there are no parsed objects
-    if (this->m_objsString.str().empty()) {
+    if (objsString.empty()) {
         Notification::create(
             "No objects added.",
             NotificationIcon::Error
@@ -303,7 +248,7 @@ void ImportPopup::parseAndPlace() {
     activeEditorUI->onDeleteSelected(nullptr);
 
     // Create objects from string and flip Y-axis
-    auto objectsArray = activeEditorLayer->createObjectsFromString(this->m_objsString.str().c_str(), true, true);
+    auto objectsArray = activeEditorLayer->createObjectsFromString(objsString.c_str(), true, true);
     activeEditorUI->flipObjectsY(objectsArray);
 
     // Add to undo stack and select objects
@@ -316,40 +261,9 @@ void ImportPopup::parseAndPlace() {
         "Successfully converted to gd objects!",
         NotificationIcon::Success
     )->show();
+
+    // Closing the popup
     this->keyBackClicked();
-}
-
-void ImportPopup::rgbToHsv(float fR, float fG, float fB, float& fH, float& fS, float& fV) {
-    // This function is took from https://gist.github.com/fairlight1337/4935ae72bcbcc1ba5c72#file-hsvrgb-cpp-L53
-    float fCMax = std::max(std::max(fR, fG), fB);
-    float fCMin = std::min(std::min(fR, fG), fB);
-    float fDelta = fCMax - fCMin;
-
-    if(fDelta > 0) {
-        if(fCMax == fR) {
-            fH = 60 * (fmod(((fG - fB) / fDelta), 6));
-        } else if(fCMax == fG) {
-            fH = 60 * (((fB - fR) / fDelta) + 2);
-        } else if(fCMax == fB) {
-            fH = 60 * (((fR - fG) / fDelta) + 4);
-        }
-
-        if (fCMax > 0) {
-            fS = fDelta / fCMax;
-        } else {
-            fS = 0;
-        }
-
-        fV = fCMax;
-    } else {
-        fH = 0;
-        fS = 0;
-        fV = fCMax;
-    }
-
-    if(fH < 0) {
-        fH = 360 + fH;
-    }
 }
 
 // Checks does object count is bigger than 5k. If so, it shows a warning
