@@ -1,7 +1,8 @@
 #include "./jsonToGDO.h"
 
-std::string core::json2gdo::parse(matjson::Value &json, GameObject *centerObj, float drawScale, int zOrderOffset) {
+core::json2gdo::ParseResult core::json2gdo::parse(const matjson::Value &json, ParseOptions options) {
     std::ostringstream objsString;
+    int objsCount = 0;
 
     for (auto obj : json) {
         // Avoiding objects with zero score
@@ -11,29 +12,32 @@ std::string core::json2gdo::parse(matjson::Value &json, GameObject *centerObj, f
         }
 
         // Setting and initializing default properties if there is missing some
-        float posX = centerObj->getPositionX();
-        float posY = centerObj->getPositionY();
+        float posX = options.centerObj->getPositionX();
+        float posY = options.centerObj->getPositionY();
         float scaleX = 1.f, scaleY = 1.f, rotation = 0.f;
         auto redResult = obj["color"][0].asDouble();
         auto blueResult = obj["color"][1].asDouble();
         auto greenResult = obj["color"][2].asDouble();
 
         // Validating types
-        if (auto objType = obj["type"].asInt())
+        if (auto objType = obj["type"].asInt()) {
             if (!m_validObjTypes.contains(objType.unwrap()))
                 continue;
+            else
+                objsCount++;
+        }
 
         if (auto posXResult = obj["data"][0].asDouble()) {
-            posX += posXResult.unwrap() * drawScale;
+            posX += posXResult.unwrap() * options.drawScale;
         }
         if (auto posYResult = obj["data"][1].asDouble()) {
-            posY += posYResult.unwrap() * drawScale;
+            posY += posYResult.unwrap() * options.drawScale;
         }
         if (auto scaleXResult = obj["data"][2].asDouble()) {
-            scaleX = scaleXResult.unwrap() * drawScale / 4 * 0.16;
+            scaleX = scaleXResult.unwrap() * options.drawScale / 4 * 0.16;
         }
         if (auto scaleYResult = obj["data"][3].asDouble()) {
-            scaleY = scaleYResult.unwrap() * drawScale / 4 * 0.16;
+            scaleY = scaleYResult.unwrap() * options.drawScale / 4 * 0.16;
         } else {
             scaleY = scaleX;
         }
@@ -56,12 +60,12 @@ std::string core::json2gdo::parse(matjson::Value &json, GameObject *centerObj, f
         objsString << fmt::format(
             "1,{},2,{},3,{},128,{},129,{},6,{},41,1,42,1,21,1010,22,1010,43,{}a{}a{}a1a1,44,{}a{}a{}a1a1,25,{},372,1;",
             m_circleID, posX, posY, scaleX, scaleY, rotation,
-            h,s,v, h,s,v, zOrderOffset
+            h,s,v, h,s,v, options.zOrderOffset
         );
-        zOrderOffset++;
+        options.zOrderOffset++;
     }
 
-    return objsString.str();
+    return ParseResult {.objects = objsString.str(), .objectsCount = objsCount};
 }
 
 void core::json2gdo::rgbToHsv(float fR, float fG, float fB, float &fH, float &fS, float &fV) {

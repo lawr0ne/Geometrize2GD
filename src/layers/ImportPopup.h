@@ -9,7 +9,7 @@ using namespace geode::prelude;
 
 class ImportPopup : public geode::Popup, TextInputDelegate {
 protected:
-    int m_zOrder = 0;
+    int m_zOrderOffset = 0;
     int m_objsCount = 0;
     float m_drawScale = 1;
     matjson::Value m_jsonSets;
@@ -23,7 +23,7 @@ protected:
     static constexpr CCSize m_popupSize = CCSize(275.f, 245.f);
     async::TaskHolder<file::PickResult> m_pickHolder;
 protected:
-    void parseAndPlace();
+    void placeJSON();
     void importJSON(cocos2d::CCObject* sender);
     void checkAlert(cocos2d::CCObject* sender);
     void onHelp(cocos2d::CCObject* sender);

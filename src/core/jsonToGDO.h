@@ -1,6 +1,7 @@
 #ifndef COREPARSE_H
 #define COREPARSE_H
 
+#include <Geode/binding/GameObject.hpp>
 #include <matjson.hpp>
 namespace core::json2gdo {
     namespace {
@@ -8,7 +9,17 @@ namespace core::json2gdo {
     }
     const std::set<int> m_validObjTypes = {5, 3, 4, 32, 8, 16};
 
-    std::string parse(matjson::Value &json, GameObject *centerObj, float drawScale, int zOrderOffset);
+    struct ParseOptions {
+        GameObject *centerObj;
+        float drawScale;
+        int zOrderOffset;
+    };
+    struct ParseResult {
+        std::string objects;
+        int objectsCount;
+    };
+
+    ParseResult parse(const matjson::Value &json, ParseOptions options);
     void rgbToHsv(float fR, float fG, float fB, float &fH, float &fS, float &fV);
 }
 

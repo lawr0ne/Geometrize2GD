@@ -66,7 +66,7 @@ bool ImportPopup::init(CCArray* selectedObj) {
     this->m_changeBtn->setPosition({this->m_popupSize.width / 2, this->m_popupSize.height / 2 + 90.f});
     this->m_changeBtn->setID("change-btn");
 
-    auto parseSpr =  ButtonSprite::create("Create");
+    auto parseSpr = ButtonSprite::create("Create");
     auto parseBtn = CCMenuItemSpriteExtra::create(
         parseSpr, this, menu_selector(ImportPopup::checkAlert)
     );
@@ -131,7 +131,7 @@ void ImportPopup::importJSON(CCObject* sender) {
     // Setting file pick options
     file::FilePickOptions::Filter json_file = {
         .description = "Geometrize JSON Output",
-        .files = { "*.json"}
+        .files = {"*.json"}
     };
     file::FilePickOptions options = {
         std::nullopt,
@@ -233,11 +233,18 @@ void ImportPopup::importJSON(CCObject* sender) {
 }
 
 // Parses the objects from Geometrize to GD format and places the objects inside GD Editor
-void ImportPopup::parseAndPlace() {
-    auto objsString = core::json2gdo::parse(this->m_jsonSets, this->m_centerObj, this->m_drawScale, this->m_zOrder);
+void ImportPopup::placeJSON() {
+    auto parsedJSON = core::json2gdo::parse(
+        this->m_jsonSets,
+        core::json2gdo::ParseOptions {
+            .centerObj = this->m_centerObj,
+            .drawScale = this->m_drawScale,
+            .zOrderOffset = this->m_zOrderOffset
+        }
+    );
 
     // Checking does it has parsed any objects
-    if (objsString.empty()) {
+    if (parsedJSON.objects.empty()) {
         Notification::create(
             "No objects added.",
             NotificationIcon::Error
@@ -253,7 +260,7 @@ void ImportPopup::parseAndPlace() {
     activeEditorUI->onDeleteSelected(nullptr);
 
     // Create objects from string and flip Y-axis
-    auto objectsArray = activeEditorLayer->createObjectsFromString(objsString.c_str(), true, true);
+    auto objectsArray = activeEditorLayer->createObjectsFromString(parsedJSON.objects.c_str(), true, true);
     activeEditorUI->flipObjectsY(objectsArray);
 
     // Add to undo stack and select objects
@@ -280,12 +287,12 @@ void ImportPopup::checkAlert(CCObject* sender) {
             "No", "Yes",
             [this](auto, bool btn2) {
                 if (btn2) {
-                    this->parseAndPlace();
+                    this->placeJSON();
                 }
             }
         );
     } else {
-        this->parseAndPlace();
+        this->placeJSON();
     }
 }
 
@@ -309,6 +316,6 @@ void ImportPopup::textChanged(CCTextInputNode *p0) {
         }
         auto numUn = num.unwrap();
         p0->setLabelNormalColor(ccc3(255,255,255));
-        this->m_zOrder = numUn;
+        this->m_zOrderOffset = numUn;
     }
 }
