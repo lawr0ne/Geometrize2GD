@@ -2,6 +2,7 @@
 #define COREPARSE_H
 
 #include <Geode/binding/GameObject.hpp>
+#include <arc/future/Future.hpp>
 #include <matjson.hpp>
 namespace core::json2gdo {
     namespace {
@@ -20,6 +21,7 @@ namespace core::json2gdo {
     };
 
     ParseResult parse(const matjson::Value &json, ParseOptions options);
+    arc::Future<ParseResult> asyncParse(const matjson::Value &json, ParseOptions options);
     void rgbToHsv(float fR, float fG, float fB, float &fH, float &fS, float &fV);
 }
 

@@ -5,9 +5,8 @@
 #include "Geode/ui/Popup.hpp"
 #include "Geode/utils/file.hpp"
 #include <arc/future/Future.hpp>
-#include "../types/ScopeExit.h"
+#include "../types/ScopeExit.hpp"
 #include "Geode/utils/web.hpp"
-#include "../core/jsonToGDO.h"
 
 ImportPopup* ImportPopup::create(CCArray* selectedObj) {
     ImportPopup* ret = new ImportPopup();
@@ -138,113 +137,132 @@ void ImportPopup::importJSON(CCObject* sender) {
         {json_file}
     };
     this->m_buttonMenu->setEnabled(false);
+    this->m_allowedExit = false;
 
     this->m_pickHolder.spawn(
         file::pick(file::PickMode::OpenFile, options),
         [this](file::PickResult result) {
-            auto enableBtns = ScopeExit([this]() {
-                this->m_buttonMenu->setEnabled(true);
-            });
-
-            // Checks does Result is empty or not
-            if (result.isErr()) {
-                return Notification::create(
-                    fmt::format("Failed to open the file. Error: {}", result.err()),
-                    NotificationIcon::Error
-                )->show();
-            }
-
-            auto path = result.unwrap();
-            if (!path.has_value()) {
-                return;
-            }
-
-            if (path->string().ends_with(".json")) {
-                // Loading json
-                auto json = geode::utils::file::readJson(*path);
-                if (json) {
-                    this->m_jsonSets = json.unwrap();
-                } else {
-                    return Notification::create(
-                        "Failed to parse the file! It may not follow the guide.",
-                        NotificationIcon::Error
-                    )->show();
-                }
-
-                if (auto temp = this->m_jsonSets["shapes"].asArray())
-                    this->m_jsonSets = temp.unwrap();
-                else if (auto temp = this->m_jsonSets.asArray())
-                    this->m_jsonSets = temp.unwrap();
-                else {
-                    return Notification::create(
-                        "Failed to parse the file! It may not follow the guide.",
-                        NotificationIcon::Error
-                    )->show();
-                }
-
-                // Counts the objects
-                for (auto obj : this->m_jsonSets) {
-                    auto objType = obj["type"].asInt();
-                    auto objScore = obj["score"].asDouble();
-
-                    if (!objType)
-                        continue;
-
-                    if (!objScore)
-                        continue;
-
-                    if (!core::json2gdo::m_validObjTypes.contains(objType.unwrap()))
-                        continue;
-
-                    if (objScore.unwrap() <= 0)
-                        continue;
-
-                    this->m_objsCount++;
-                }
-
-                auto countText = fmt::format("Objects: {}", this->m_objsCount);
-                auto fileText = fmt::format("File: {}", path->filename());
-                this->m_countLabel->setString(countText.c_str());
-                this->m_fileLabel->setString(fileText.c_str());
-                this->m_fileLabel->limitLabelWidth(this->m_popupSize.width - 10, 0.45f, 0.2f);
-                this->m_selectBtn->setVisible(false);
-                this->m_buttonMenu->getChildByID("change-btn")->setVisible(true);
-                this->m_mainLayer->getChildByID("draw-scale-label")->setVisible(true);
-                this->m_mainLayer->getChildByID("zlayer-label")->setVisible(true);
-                this->m_buttonMenu->getChildByID("convert-btn")->setVisible(true);
-                this->m_fileLabel->setVisible(true);
-                this->m_countLabel->setVisible(true);
-                this->m_zLayerInput->setVisible(true);
-                this->m_drawScaleInput->setVisible(true);
-                this->m_objsCount = 0;
-
-                Notification::create(
-                    "File is imported",
-                    NotificationIcon::Success
-                )->show();
-            } else {
-                Notification::create(
-                    "Wrong file format. It must be a .json file!",
-                    NotificationIcon::Error
-                )->show();
-            }
+            this->onFilePicked(result);
         }
     );
 }
 
-// Parses the objects from Geometrize to GD format and places the objects inside GD Editor
-void ImportPopup::placeJSON() {
-    auto parsedJSON = core::json2gdo::parse(
-        this->m_jsonSets,
-        core::json2gdo::ParseOptions {
+void ImportPopup::onFilePicked(file::PickResult result) {
+    auto enableBtns = ScopeExit([this]() {
+        this->m_buttonMenu->setEnabled(true);
+        this->m_allowedExit = true;
+    });
+
+    // Checks does Result is empty or not
+    if (result.isErr()) {
+        return Notification::create(
+            fmt::format("Failed to open the file. Error: {}", result.err()),
+            NotificationIcon::Error
+        )->show();
+    }
+
+    auto path = result.unwrap();
+    if (!path.has_value()) {
+        return;
+    }
+
+    if (path->string().ends_with(".json")) {
+        // Loading json
+        auto json = geode::utils::file::readJson(*path);
+        if (json) {
+            this->m_jsonSets = json.unwrap();
+        } else {
+            return Notification::create(
+                "Failed to parse the file! It may not follow the guide.",
+                NotificationIcon::Error
+            )->show();
+        }
+
+        if (auto temp = this->m_jsonSets["shapes"].asArray())
+            this->m_jsonSets = temp.unwrap();
+        else if (auto temp = this->m_jsonSets.asArray())
+            this->m_jsonSets = temp.unwrap();
+        else {
+            return Notification::create(
+                "Failed to parse the file! It may not follow the guide.",
+                NotificationIcon::Error
+            )->show();
+        }
+
+        auto fileText = fmt::format("File: {}", path->filename());
+        this->m_fileLabel->setString(fileText.c_str());
+        this->m_fileLabel->limitLabelWidth(this->m_popupSize.width - 10, 0.45f, 0.2f);
+
+        core::json2gdo::ParseOptions parse_options {
             .centerObj = this->m_centerObj,
             .drawScale = this->m_drawScale,
             .zOrderOffset = this->m_zOrderOffset
-        }
-    );
+        };
 
+        enableBtns.cancel();
+        this->m_parseHolder.spawn(
+            core::json2gdo::asyncParse(this->m_jsonSets, parse_options),
+            [this](core::json2gdo::ParseResult result) {
+                this->onJSONParsed(result);
+            }
+        );
+    } else {
+        Notification::create(
+            "Wrong file format. It must be a .json file!",
+            NotificationIcon::Error
+        )->show();
+    }
+}
+
+void ImportPopup::onJSONParsed(core::json2gdo::ParseResult result) {
+    auto enableBtns = ScopeExit([this]() {
+        this->m_buttonMenu->setEnabled(true);
+        this->m_allowedExit = true;
+    });
+
+    this->m_objsString = result.objects;
+    this->m_objsCount = result.objectsCount;
+
+    auto countText = fmt::format("Objects: {}", this->m_objsCount);
+    this->m_countLabel->setCString(countText.c_str());
+    this->m_selectBtn->setVisible(false);
+    this->m_buttonMenu->getChildByID("change-btn")->setVisible(true);
+    this->m_mainLayer->getChildByID("draw-scale-label")->setVisible(true);
+    this->m_mainLayer->getChildByID("zlayer-label")->setVisible(true);
+    this->m_buttonMenu->getChildByID("convert-btn")->setVisible(true);
+    this->m_fileLabel->setVisible(true);
+    this->m_countLabel->setVisible(true);
+    this->m_zLayerInput->setVisible(true);
+    this->m_drawScaleInput->setVisible(true);
+
+    Notification::create(
+        "File is parsed.",
+        NotificationIcon::Success
+    )->show();
+}
+
+// Checks does object count is bigger than 5k. If so, it shows a warning
+void ImportPopup::checkAlert(CCObject* sender) {
+    if (this->m_objsCount > 5000) {
+        geode::createQuickPopup(
+            "Alert",
+            "This will place more than <cy>5000 objects</c>\nAre you sure?",
+            "No", "Yes",
+            [this](auto, bool btn2) {
+                if (btn2) {
+                    this->place();
+                }
+            }
+        );
+    } else {
+        this->place();
+    }
+}
+
+// Parses the objects from Geometrize to GD format and places the objects inside GD Editor
+void ImportPopup::place() {
     // Checking does it has parsed any objects
-    if (parsedJSON.objects.empty()) {
+    if (this->m_objsString.empty()) {
         Notification::create(
             "No objects added.",
             NotificationIcon::Error
@@ -260,7 +278,7 @@ void ImportPopup::placeJSON() {
     activeEditorUI->onDeleteSelected(nullptr);
 
     // Create objects from string and flip Y-axis
-    auto objectsArray = activeEditorLayer->createObjectsFromString(parsedJSON.objects.c_str(), true, true);
+    auto objectsArray = activeEditorLayer->createObjectsFromString(this->m_objsString.c_str(), true, true);
     activeEditorUI->flipObjectsY(objectsArray);
 
     // Add to undo stack and select objects
@@ -276,24 +294,6 @@ void ImportPopup::placeJSON() {
 
     // Closing the popup
     this->keyBackClicked();
-}
-
-// Checks does object count is bigger than 5k. If so, it shows a warning
-void ImportPopup::checkAlert(CCObject* sender) {
-    if (this->m_objsCount > 5000) {
-        geode::createQuickPopup(
-            "Alert",
-            "This will place more than <cy>5000 objects</c>\nAre you sure?",
-            "No", "Yes",
-            [this](auto, bool btn2) {
-                if (btn2) {
-                    this->placeJSON();
-                }
-            }
-        );
-    } else {
-        this->placeJSON();
-    }
 }
 
 // Checks the value inside inputs to avoid unwanted crashes
@@ -317,5 +317,11 @@ void ImportPopup::textChanged(CCTextInputNode *p0) {
         auto numUn = num.unwrap();
         p0->setLabelNormalColor(ccc3(255,255,255));
         this->m_zOrderOffset = numUn;
+    }
+}
+
+void ImportPopup::keyBackClicked() {
+    if (this->m_allowedExit) {
+        Popup::keyBackClicked();
     }
 }

@@ -1,4 +1,5 @@
 #include "./jsonToGDO.h"
+#include "Geode/utils/async.hpp"
 
 core::json2gdo::ParseResult core::json2gdo::parse(const matjson::Value &json, ParseOptions options) {
     std::ostringstream objsString;
@@ -66,6 +67,17 @@ core::json2gdo::ParseResult core::json2gdo::parse(const matjson::Value &json, Pa
     }
 
     return ParseResult {.objects = objsString.str(), .objectsCount = objsCount};
+}
+
+arc::Future<core::json2gdo::ParseResult> core::json2gdo::asyncParse(const matjson::Value &json, ParseOptions options) {
+    auto handle = geode::async::runtime().spawnBlocking<ParseResult>(
+        [json, options]() {
+            return parse(json, options);
+        }
+    );
+
+    auto result = co_await handle;
+    co_return result;
 }
 
 void core::json2gdo::rgbToHsv(float fR, float fG, float fB, float &fH, float &fS, float &fV) {
