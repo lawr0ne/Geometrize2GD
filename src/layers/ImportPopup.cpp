@@ -172,7 +172,7 @@ void ImportPopup::importJSON(CCObject* sender) {
                     this->m_jsonSets = temp.unwrap();
                 else {
                     return Notification::create(
-                        "Failed to parse the file! It may not follows the guide.",
+                        "Failed to parse the file! It may not follow the guide.",
                         NotificationIcon::Error
                     )->show();
                 }
