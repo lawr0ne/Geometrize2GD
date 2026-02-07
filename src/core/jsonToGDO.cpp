@@ -1,6 +1,6 @@
 #include "./jsonToGDO.h"
 
-std::string core::json2gdo::parse(matjson::Value &json, GameObject *centerObj, float drawScale, int zOrderOffset) {
+std::string core::json2gdo::parse(const matjson::Value &json, const GameObject *centerObj, float drawScale, int zOrderOffset) {
     std::ostringstream objsString;
 
     for (auto obj : json) {

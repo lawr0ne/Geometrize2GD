@@ -8,7 +8,7 @@ namespace core::json2gdo {
     }
     const std::set<int> m_validObjTypes = {5, 3, 4, 32, 8, 16};
 
-    std::string parse(matjson::Value &json, GameObject *centerObj, float drawScale, int zOrderOffset);
+    std::string parse(const matjson::Value &json, const GameObject *centerObj, float drawScale, int zOrderOffset);
     void rgbToHsv(float fR, float fG, float fB, float &fH, float &fS, float &fV);
 }
 
