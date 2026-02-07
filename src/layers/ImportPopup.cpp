@@ -164,6 +164,11 @@ void ImportPopup::importJSON(CCObject* sender) {
                 auto json = geode::utils::file::readJson(*path);
                 if (json) {
                     this->m_jsonSets = json.unwrap();
+                } else {
+                    return Notification::create(
+                        "Failed to parse the file! It may not follow the guide.",
+                        NotificationIcon::Error
+                    )->show();
                 }
 
                 if (auto temp = this->m_jsonSets["shapes"].asArray())
