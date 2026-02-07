@@ -118,9 +118,9 @@ bool ImportPopup::init(CCArray* selectedObj) {
 void ImportPopup::onHelp(CCObject* sender) {
     geode::createQuickPopup(
         "Help", "Do you want to open the guide?",
-        "Yes", "No",
+        "No", "Yes",
         [](auto* self, bool btn2) {
-            if (!btn2)
+            if (btn2)
                 geode::utils::web::openLinkInBrowser("https://github.com/lawr0ne/Geometrize2GD/blob/main/GUIDE.md");
         }
     );
