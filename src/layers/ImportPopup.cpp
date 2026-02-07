@@ -172,7 +172,7 @@ void ImportPopup::importJSON(CCObject* sender) {
                     this->m_jsonSets = temp.unwrap();
                 else {
                     return Notification::create(
-                        "Failed to parse the file! It may be empty.",
+                        "Failed to parse the file! It may not follows the guide.",
                         NotificationIcon::Error
                     )->show();
                 }
@@ -231,7 +231,7 @@ void ImportPopup::importJSON(CCObject* sender) {
 void ImportPopup::parseAndPlace() {
     auto objsString = core::json2gdo::parse(this->m_jsonSets, this->m_centerObj, this->m_drawScale, this->m_zOrder);
 
-    // Checking if there are no parsed objects
+    // Checking does it has parsed any objects
     if (objsString.empty()) {
         Notification::create(
             "No objects added.",
