@@ -6,7 +6,6 @@
 #include "Geode/cocos/cocoa/CCObject.h"
 #include "Geode/cocos/label_nodes/CCLabelBMFont.h"
 #include "Geode/cocos/sprite_nodes/CCSprite.h"
-#include "Geode/loader/Log.hpp"
 #include "Geode/ui/Popup.hpp"
 #include "Geode/utils/file.hpp"
 #include <arc/future/Future.hpp>
@@ -317,7 +316,7 @@ void ImportPopup::checkAlert(CCObject* sender) {
     }
 }
 
-// Parses the objects from Geometrize to GD format and places the objects inside GD Editor
+// Places the objects inside GD Editor
 void ImportPopup::place() {
     // Checking does it has parsed any objects
     if (this->m_objsString.empty()) {
