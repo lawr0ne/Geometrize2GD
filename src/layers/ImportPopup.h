@@ -18,6 +18,8 @@ protected:
     std::string m_objsString;
     GameObject* m_centerObj = nullptr;
     TextInput* m_zLayerInput = nullptr;
+    CCNode* m_parsedView = nullptr;
+    CCMenu* m_parsedViewMenu = nullptr;
     CCLabelBMFont* m_fileLabel = nullptr;
     CCLabelBMFont* m_countLabel = nullptr;
     TextInput* m_drawScaleInput = nullptr;
