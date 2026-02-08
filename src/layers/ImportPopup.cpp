@@ -213,66 +213,66 @@ void ImportPopup::onFilePicked(file::PickResult result) {
         return;
     }
 
-    if (path->string().ends_with(".json")) {
-        // Loading json
-        auto json = geode::utils::file::readJson(*path);
-        if (json) {
-            this->m_jsonSets = json.unwrap();
-        } else {
-            return Notification::create(
-                "Failed to parse the file! It may not follow the guide.",
-                NotificationIcon::Error
-            )->show();
-        }
-
-        if (auto temp = this->m_jsonSets["shapes"].asArray())
-            this->m_jsonSets = temp.unwrap();
-        else if (auto temp = this->m_jsonSets.asArray())
-            this->m_jsonSets = temp.unwrap();
-        else {
-            return Notification::create(
-                "Failed to parse the file! It may not follow the guide.",
-                NotificationIcon::Error
-            )->show();
-        }
-
-        auto fileText = fmt::format("File: {}", path->filename());
-        this->m_fileLabel->setString(fileText.c_str());
-        this->m_fileLabel->limitLabelWidth(this->m_popupSize.width - 10, 0.45f, 0.2f);
-
-        enableBtns.cancel();
-        this->m_selectBtn->setVisible(false);
-        this->m_parsedView->setVisible(false);
-
-        this->m_parsingText->setVisible(true);
-        this->m_parsingText->runAction(
-            CCRepeatForever::create(
-                CCSequence::create(
-                    CCCallFuncN::create(this->m_parsingText, callfuncN_selector(ImportPopup::parseTextAnimationStep)),
-                    CCDelayTime::create(0.25f),
-                    nullptr
-                )
-            )
-        )->setTag(0);
-
-        core::json2gdo::ParseOptions parse_options {
-            .centerObj = this->m_centerObj,
-            .drawScale = this->m_drawScale,
-            .zOrderOffset = this->m_zOrderOffset
-        };
-
-        this->m_parseHolder.spawn(
-            core::json2gdo::asyncParse(this->m_jsonSets, parse_options),
-            [this](core::json2gdo::ParseResult result) {
-                this->onJSONParsed(result);
-            }
-        );
-    } else {
-        Notification::create(
+    if (!path->string().ends_with(".json")) {
+        return Notification::create(
             "Wrong file format. It must be a .json file!",
             NotificationIcon::Error
         )->show();
     }
+
+    // Loading json
+    auto json = geode::utils::file::readJson(*path);
+    if (json.isErr()) {
+        return Notification::create(
+            "Failed to parse the file! It may not follow the guide.",
+            NotificationIcon::Error
+        )->show();
+    }
+
+    this->m_jsonSets = json.unwrap();
+
+    if (auto temp = this->m_jsonSets["shapes"].asArray())
+        this->m_jsonSets = temp.unwrap();
+    else if (auto temp = this->m_jsonSets.asArray())
+        this->m_jsonSets = temp.unwrap();
+    else {
+        return Notification::create(
+            "Failed to parse the file! It may not follow the guide.",
+            NotificationIcon::Error
+        )->show();
+    }
+
+    auto fileText = fmt::format("File: {}", path->filename());
+    this->m_fileLabel->setString(fileText.c_str());
+    this->m_fileLabel->limitLabelWidth(this->m_popupSize.width - 10, 0.45f, 0.2f);
+
+    enableBtns.cancel();
+    this->m_selectBtn->setVisible(false);
+    this->m_parsedView->setVisible(false);
+
+    this->m_parsingText->setVisible(true);
+    this->m_parsingText->runAction(
+        CCRepeatForever::create(
+            CCSequence::create(
+                CCCallFuncN::create(this->m_parsingText, callfuncN_selector(ImportPopup::parseTextAnimationStep)),
+                CCDelayTime::create(0.25f),
+                nullptr
+            )
+        )
+    )->setTag(0);
+
+    core::json2gdo::ParseOptions parse_options {
+        .centerObj = this->m_centerObj,
+        .drawScale = this->m_drawScale,
+        .zOrderOffset = this->m_zOrderOffset
+    };
+
+    this->m_parseHolder.spawn(
+        core::json2gdo::asyncParse(this->m_jsonSets, parse_options),
+        [this](core::json2gdo::ParseResult result) {
+            this->onJSONParsed(result);
+        }
+    );
 }
 
 void ImportPopup::onJSONParsed(core::json2gdo::ParseResult result) {
@@ -300,20 +300,20 @@ void ImportPopup::onJSONParsed(core::json2gdo::ParseResult result) {
 
 // Checks does object count is bigger than 5k. If so, it shows a warning
 void ImportPopup::checkAlert(CCObject* sender) {
-    if (this->m_objsCount > 5000) {
-        geode::createQuickPopup(
-            "Alert",
-            "This will place more than <cy>5000 objects</c>\nAre you sure?",
-            "No", "Yes",
-            [this](auto, bool btn2) {
-                if (btn2) {
-                    this->place();
-                }
-            }
-        );
-    } else {
-        this->place();
+    if (this->m_objsCount < 5000) {
+        return this->place();
     }
+
+    geode::createQuickPopup(
+        "Alert",
+        "This will place more than <cy>5000 objects</c>\nAre you sure?",
+        "No", "Yes",
+        [this](auto, bool btn2) {
+            if (btn2) {
+                this->place();
+            }
+        }
+    );
 }
 
 // Places the objects inside GD Editor
