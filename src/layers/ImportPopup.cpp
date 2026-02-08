@@ -1,18 +1,6 @@
 #include "ImportPopup.h"
 
-#include "Geode/cocos/CCScheduler.h"
-#include "Geode/cocos/actions/CCActionEase.h"
-#include "Geode/cocos/actions/CCActionInstant.h"
-#include "Geode/cocos/actions/CCActionInterval.h"
-#include "Geode/cocos/cocoa/CCObject.h"
-#include "Geode/cocos/label_nodes/CCLabelBMFont.h"
-#include "Geode/cocos/sprite_nodes/CCSprite.h"
-#include "Geode/ui/Popup.hpp"
-#include "Geode/utils/file.hpp"
-#include <Geode/binding/GameManager.hpp>
-#include <arc/future/Future.hpp>
 #include "../types/ScopeExit.hpp"
-#include "Geode/utils/web.hpp"
 
 ImportPopup* ImportPopup::create(CCArray* selectedObj) {
     ImportPopup* ret = new ImportPopup();

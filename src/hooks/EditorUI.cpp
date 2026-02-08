@@ -1,5 +1,3 @@
-#include <Geode/Geode.hpp>
-#include <Geode/modify/EditorUI.hpp>
 #include "../layers/ImportPopup.h"
 
 using namespace geode::prelude;

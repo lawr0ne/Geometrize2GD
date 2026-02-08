@@ -1,10 +1,3 @@
-#include "Geode/cocos/cocoa/CCObject.h"
-#include "Geode/cocos/label_nodes/CCLabelBMFont.h"
-#include "Geode/utils/async.hpp"
-#include "Geode/utils/file.hpp"
-#include <Geode/ui/TextInput.hpp>
-#include <Geode/ui/Popup.hpp>
-#include <matjson.hpp>
 #include "../core/jsonToGDO.h"
 
 using namespace geode::prelude;
