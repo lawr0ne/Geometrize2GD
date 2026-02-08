@@ -1,7 +1,12 @@
 #include "ImportPopup.h"
 
+#include "Geode/cocos/CCScheduler.h"
+#include "Geode/cocos/actions/CCActionInstant.h"
+#include "Geode/cocos/actions/CCActionInterval.h"
 #include "Geode/cocos/cocoa/CCObject.h"
+#include "Geode/cocos/label_nodes/CCLabelBMFont.h"
 #include "Geode/cocos/sprite_nodes/CCSprite.h"
+#include "Geode/loader/Log.hpp"
 #include "Geode/ui/Popup.hpp"
 #include "Geode/utils/file.hpp"
 #include <arc/future/Future.hpp>
@@ -26,6 +31,11 @@ bool ImportPopup::init(CCArray* selectedObj) {
     this->setID("import-popup"_spr);
 
     this->m_centerObj = CCArrayExt<GameObject*>(selectedObj)[0];
+
+    this->m_parsingText = CCLabelBMFont::create("Parsing...", "bigFont.fnt");
+    this->m_parsingText->setVisible(false);
+    this->m_parsingText->setPosition(this->m_popupSize / 2);
+    this->m_parsingText->setScale(0.6f);
 
     this->m_parsedView = CCNode::create();
     this->m_parsedView->setID("parsed-view");
@@ -117,9 +127,38 @@ bool ImportPopup::init(CCArray* selectedObj) {
     this->m_parsedViewMenu->addChild(this->m_zLayerInput);
     this->m_buttonMenu->addChild(helpBtn);
 
+    this->m_mainLayer->addChild(this->m_parsingText);
+
     this->m_mainLayer->addChild(this->m_parsedView);
     this->m_parsedView->addChild(this->m_parsedViewMenu);
     return true;
+}
+
+void ImportPopup::parseTextAnimationStep(CCNode* node) {
+    static unsigned short step = 0;
+    CCLabelBMFont* text = static_cast<CCLabelBMFont*>(node);
+
+    switch (step) {
+        case 0:
+            text->setCString("Parsing");
+            break;
+        case 1:
+            text->setCString("Parsing.");
+            break;
+        case 2:
+            text->setCString("Parsing..");
+            break;
+        case 3:
+            text->setCString("Parsing...");
+            break;
+    }
+
+    if (step == 3) {
+        step = 0;
+        return;
+    }
+
+    step++;
 }
 
 void ImportPopup::onHelp(CCObject* sender) {
@@ -202,13 +241,27 @@ void ImportPopup::onFilePicked(file::PickResult result) {
         this->m_fileLabel->setString(fileText.c_str());
         this->m_fileLabel->limitLabelWidth(this->m_popupSize.width - 10, 0.45f, 0.2f);
 
+        enableBtns.cancel();
+        this->m_selectBtn->setVisible(false);
+        this->m_parsedView->setVisible(false);
+
+        this->m_parsingText->setVisible(true);
+        this->m_parsingText->runAction(
+            CCRepeatForever::create(
+                CCSequence::create(
+                    CCCallFuncN::create(this->m_parsingText, callfuncN_selector(ImportPopup::parseTextAnimationStep)),
+                    CCDelayTime::create(0.25f),
+                    nullptr
+                )
+            )
+        )->setTag(0);
+
         core::json2gdo::ParseOptions parse_options {
             .centerObj = this->m_centerObj,
             .drawScale = this->m_drawScale,
             .zOrderOffset = this->m_zOrderOffset
         };
 
-        enableBtns.cancel();
         this->m_parseHolder.spawn(
             core::json2gdo::asyncParse(this->m_jsonSets, parse_options),
             [this](core::json2gdo::ParseResult result) {
@@ -233,9 +286,11 @@ void ImportPopup::onJSONParsed(core::json2gdo::ParseResult result) {
     this->m_objsString = result.objects;
     this->m_objsCount = result.objectsCount;
 
+    this->m_parsingText->setVisible(false);
+    this->m_parsingText->stopActionByTag(0);
+
     auto countText = fmt::format("Objects: {}", this->m_objsCount);
     this->m_countLabel->setCString(countText.c_str());
-    this->m_selectBtn->setVisible(false);
     this->m_parsedView->setVisible(true);
 
     Notification::create(

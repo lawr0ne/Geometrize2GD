@@ -1,4 +1,5 @@
 #include "Geode/cocos/cocoa/CCObject.h"
+#include "Geode/cocos/label_nodes/CCLabelBMFont.h"
 #include "Geode/utils/async.hpp"
 #include "Geode/utils/file.hpp"
 #include <Geode/ui/TextInput.hpp>
@@ -18,6 +19,7 @@ protected:
     std::string m_objsString;
     GameObject* m_centerObj = nullptr;
     TextInput* m_zLayerInput = nullptr;
+    CCLabelBMFont* m_parsingText = nullptr;
     CCNode* m_parsedView = nullptr;
     CCMenu* m_parsedViewMenu = nullptr;
     CCLabelBMFont* m_fileLabel = nullptr;
@@ -35,6 +37,7 @@ protected:
     void onFilePicked(file::PickResult result);
     void onJSONParsed(core::json2gdo::ParseResult result);
     void checkAlert(cocos2d::CCObject* sender);
+    void parseTextAnimationStep(CCNode* node);
     void place();
     void textChanged(CCTextInputNode *p0) override;
     void keyBackClicked() override;
