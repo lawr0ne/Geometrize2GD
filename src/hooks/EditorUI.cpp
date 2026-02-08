@@ -1,5 +1,7 @@
 #include "../layers/ImportPopup.h"
 
+#include <Geode/modify/EditorUI.hpp>
+
 using namespace geode::prelude;
 
 // This hook adds a custom button
