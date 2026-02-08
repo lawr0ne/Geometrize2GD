@@ -26,7 +26,6 @@ protected:
     CCLabelBMFont* m_countLabel = nullptr;
     TextInput* m_drawScaleInput = nullptr;
     CCMenuItemSpriteExtra* m_selectBtn = nullptr;
-    CCMenuItemSpriteExtra* m_changeBtn = nullptr;
     static constexpr CCSize m_popupSize = CCSize(275.f, 245.f);
     async::TaskHolder<file::PickResult> m_pickHolder;
     async::TaskHolder<core::json2gdo::ParseResult> m_parseHolder;

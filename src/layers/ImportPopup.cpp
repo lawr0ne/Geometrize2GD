@@ -1,6 +1,7 @@
 #include "ImportPopup.h"
 
 #include "Geode/cocos/CCScheduler.h"
+#include "Geode/cocos/actions/CCActionEase.h"
 #include "Geode/cocos/actions/CCActionInstant.h"
 #include "Geode/cocos/actions/CCActionInterval.h"
 #include "Geode/cocos/cocoa/CCObject.h"
@@ -8,6 +9,7 @@
 #include "Geode/cocos/sprite_nodes/CCSprite.h"
 #include "Geode/ui/Popup.hpp"
 #include "Geode/utils/file.hpp"
+#include <Geode/binding/GameManager.hpp>
 #include <arc/future/Future.hpp>
 #include "../types/ScopeExit.hpp"
 #include "Geode/utils/web.hpp"
@@ -27,8 +29,20 @@ ImportPopup* ImportPopup::create(CCArray* selectedObj) {
 bool ImportPopup::init(CCArray* selectedObj) {
     if (!Popup::init(this->m_popupSize.width, this->m_popupSize.height)) return false;
 
-    this->setID("import-popup"_spr);
+    auto gmanager = GameManager::sharedState();
+    auto fast_menu = gmanager->getGameVariable("0168");
 
+    if (!fast_menu) {
+        this->m_mainLayer->setScale(0.5f);
+
+        this->m_mainLayer->runAction(
+            CCEaseExponentialOut::create(
+                CCScaleTo::create(0.3f, 1)
+            )
+        );
+    }
+
+    this->setID("import-popup"_spr);
     this->m_centerObj = CCArrayExt<GameObject*>(selectedObj)[0];
 
     this->m_parsingText = CCLabelBMFont::create("Parsing...", "bigFont.fnt");
@@ -71,15 +85,15 @@ bool ImportPopup::init(CCArray* selectedObj) {
     this->m_selectBtn = CCMenuItemSpriteExtra::create(
         importJsonSpr, this, menu_selector(ImportPopup::importJSON)
     );
-    this->m_selectBtn->setID("import-btn");
+    this->m_selectBtn->setID("pick-btn");
     this->m_selectBtn->setPosition(this->m_selectBtn->getPosition() + this->m_popupSize / 2);
 
     auto changeJsonSpr = ButtonSprite::create("Pick Another");
-    this->m_changeBtn = CCMenuItemSpriteExtra::create(
+    auto changeBtn = CCMenuItemSpriteExtra::create(
         changeJsonSpr, this, menu_selector(ImportPopup::importJSON)
     );
-    this->m_changeBtn->setPosition({this->m_popupSize.width / 2, this->m_popupSize.height / 2 + 90.f});
-    this->m_changeBtn->setID("change-btn");
+    changeBtn->setPosition({this->m_popupSize.width / 2, this->m_popupSize.height / 2 + 90.f});
+    changeBtn->setID("pick-btn");
 
     auto parseSpr = ButtonSprite::create("Place");
     auto parseBtn = CCMenuItemSpriteExtra::create(
@@ -120,14 +134,14 @@ bool ImportPopup::init(CCArray* selectedObj) {
     this->m_parsedView->addChild(zLayerLabel);
 
     this->m_buttonMenu->addChild(this->m_selectBtn);
-    this->m_parsedViewMenu->addChild(this->m_changeBtn);
+    this->m_buttonMenu->addChild(helpBtn);
+
+    this->m_parsedViewMenu->addChild(changeBtn);
     this->m_parsedViewMenu->addChild(parseBtn);
     this->m_parsedViewMenu->addChild(this->m_drawScaleInput);
     this->m_parsedViewMenu->addChild(this->m_zLayerInput);
-    this->m_buttonMenu->addChild(helpBtn);
 
     this->m_mainLayer->addChild(this->m_parsingText);
-
     this->m_mainLayer->addChild(this->m_parsedView);
     this->m_parsedView->addChild(this->m_parsedViewMenu);
     return true;
