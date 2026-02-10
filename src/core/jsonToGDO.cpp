@@ -1,5 +1,7 @@
 #include "./jsonToGDO.h"
 
+#include <Geode/utils/async.hpp>
+
 core::json2gdo::ParseResult core::json2gdo::parse(const matjson::Value &json, ParseOptions options) {
     std::ostringstream objsString;
     int objsCount = 0;

@@ -4,6 +4,7 @@
 #include <Geode/binding/GameObject.hpp>
 #include <arc/future/Future.hpp>
 #include <matjson.hpp>
+
 namespace core::json2gdo {
     namespace {
         constexpr int m_circleID = 497;

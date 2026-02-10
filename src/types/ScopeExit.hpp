@@ -1,3 +1,5 @@
+#include <type_traits>
+
 template<typename F>
 concept Callable = std::is_invocable_v<F>;
 

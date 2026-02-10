@@ -1,6 +1,14 @@
 #include "ImportPopup.h"
 
 #include "../types/ScopeExit.hpp"
+#include <Geode/ui/Notification.hpp>
+#include <Geode/binding/GameManager.hpp>
+#include <Geode/binding/ButtonSprite.hpp>
+#include <Geode/binding/LevelEditorLayer.hpp>
+#include <Geode/binding/UndoObject.hpp>
+#include <Geode/binding/EditorUI.hpp>
+#include <Geode/utils/web.hpp>
+#include <Geode/loader/Mod.hpp>
 
 ImportPopup* ImportPopup::create(CCArray* selectedObj) {
     ImportPopup* ret = new ImportPopup();
@@ -180,9 +188,10 @@ void ImportPopup::importJSON(CCObject* sender) {
         .files = {"*.json"}
     };
     file::FilePickOptions options = {
-        std::nullopt,
-        {json_file}
+        .defaultPath = std::nullopt,
+        .filters = {json_file}
     };
+
     this->m_buttonMenu->setEnabled(false);
     this->m_parsedViewMenu->setEnabled(false);
     this->m_allowedExit = false;
@@ -222,28 +231,6 @@ void ImportPopup::onFilePicked(file::PickResult result) {
         )->show();
     }
 
-    // Loading json
-    auto json = geode::utils::file::readJson(*path);
-    if (json.isErr()) {
-        return Notification::create(
-            "Failed to parse the file! It may not follow the guide.",
-            NotificationIcon::Error
-        )->show();
-    }
-
-    this->m_jsonSets = json.unwrap();
-
-    if (auto temp = this->m_jsonSets["shapes"].asArray())
-        this->m_jsonSets = temp.unwrap();
-    else if (auto temp = this->m_jsonSets.asArray())
-        this->m_jsonSets = temp.unwrap();
-    else {
-        return Notification::create(
-            "Failed to parse the file! It may not follow the guide.",
-            NotificationIcon::Error
-        )->show();
-    }
-
     auto fileText = fmt::format("File: {}", path->filename());
     this->m_fileLabel->setString(fileText.c_str());
     this->m_fileLabel->limitLabelWidth(this->m_popupSize.width - 10, 0.45f, 0.2f);
@@ -270,25 +257,69 @@ void ImportPopup::onFilePicked(file::PickResult result) {
     };
 
     this->m_parseHolder.spawn(
-        core::json2gdo::asyncParse(this->m_jsonSets, parse_options),
-        [this](core::json2gdo::ParseResult result) {
+        ImportPopup::parseJSON(*path, parse_options),
+        [this](std::optional<core::json2gdo::ParseResult> result) {
             this->onJSONParsed(result);
         }
     );
 }
 
-void ImportPopup::onJSONParsed(core::json2gdo::ParseResult result) {
+arc::Future<std::optional<core::json2gdo::ParseResult>> ImportPopup::parseJSON(std::filesystem::path path, core::json2gdo::ParseOptions options) {
+    auto handle = async::runtime().spawnBlocking<Result<matjson::Value>>([path]() {
+        return geode::utils::file::readJson(path);
+    });
+    auto json = co_await handle;
+
+    if (json.isErr()) {
+        geode::queueInMainThread([]() {
+            Notification::create(
+                "Failed to parse the file! It may not follow the guide.",
+                NotificationIcon::Error
+            )->show();
+        });
+
+        co_return std::optional<core::json2gdo::ParseResult>(std::nullopt);
+    }
+
+    auto unJson = json.unwrap();
+
+    if (auto temp = unJson["shapes"].asArray())
+        unJson = temp.unwrap();
+    else if (auto temp = unJson.asArray())
+       unJson = temp.unwrap();
+    else {
+        geode::queueInMainThread([]() {
+            Notification::create(
+                "Failed to parse the file! It may not follow the guide.",
+                NotificationIcon::Error
+            )->show();
+        });
+
+        co_return std::optional<core::json2gdo::ParseResult>(std::nullopt);
+    }
+
+    auto parseResult = co_await core::json2gdo::asyncParse(unJson, options);
+    co_return std::optional(parseResult);
+}
+
+void ImportPopup::onJSONParsed(std::optional<core::json2gdo::ParseResult> result) {
     auto enableBtns = ScopeExit([this]() {
         this->m_buttonMenu->setEnabled(true);
         this->m_parsedViewMenu->setEnabled(true);
         this->m_allowedExit = true;
     });
 
-    this->m_objsString = result.objects;
-    this->m_objsCount = result.objectsCount;
-
     this->m_parsingText->setVisible(false);
     this->m_parsingText->stopActionByTag(0);
+
+    if (!result.has_value()) {
+        this->m_selectBtn->setVisible(true);
+
+        return;
+    }
+
+    this->m_objsString = result->objects;
+    this->m_objsCount = result->objectsCount;
 
     auto countText = fmt::format("Objects: {}", this->m_objsCount);
     this->m_countLabel->setCString(countText.c_str());

@@ -1,6 +1,8 @@
 #include "../layers/ImportPopup.h"
 
 #include <Geode/modify/EditorUI.hpp>
+#include <Geode/binding/EditButtonBar.hpp>
+#include <Geode/binding/GameManager.hpp>
 
 using namespace geode::prelude;
 
