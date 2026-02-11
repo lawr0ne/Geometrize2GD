@@ -32,14 +32,14 @@ class ImportPopup : public geode::Popup, TextInputDelegate {
     geode::async::TaskHolder<std::optional<core::json2gdo::ParseResult>> m_parseHolder;
 protected:
     bool init(cocos2d::CCPoint selectedObjectPos);
-    void onHelp(cocos2d::CCObject* sender);
-    void importJSON(cocos2d::CCObject* sender);
+    void onHelp(cocos2d::CCObject*);
+    void importJSON(cocos2d::CCObject*);
     void onFilePicked(geode::utils::file::PickResult result);
     void parseTextAnimationStep(CCNode* node);
     static arc::Future<std::optional<core::json2gdo::ParseResult>> parseJSON(std::filesystem::path path, core::json2gdo::ParseOptions options);
     void onJSONParsed(std::optional<core::json2gdo::ParseResult> result);
     void textChanged(CCTextInputNode *p0) override;
-    void checkAlert(cocos2d::CCObject* sender);
+    void checkAlert(cocos2d::CCObject*);
     void place();
     void keyBackClicked() override;
 public:

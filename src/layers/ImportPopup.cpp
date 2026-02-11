@@ -174,7 +174,7 @@ void ImportPopup::parseTextAnimationStep(CCNode* node) {
     step++;
 }
 
-void ImportPopup::onHelp(CCObject* sender) {
+void ImportPopup::onHelp(CCObject*) {
     geode::createQuickPopup(
         "Help", "Do you want to open the guide?",
         "No", "Yes",
@@ -185,7 +185,7 @@ void ImportPopup::onHelp(CCObject* sender) {
     );
 }
 
-void ImportPopup::importJSON(CCObject* sender) {
+void ImportPopup::importJSON(CCObject*) {
     // Setting file pick options
     file::FilePickOptions::Filter json_file = {
         .description = "Geometrize JSON Output",
@@ -343,7 +343,7 @@ void ImportPopup::onJSONParsed(std::optional<core::json2gdo::ParseResult> result
 }
 
 // Checks does object count is bigger than 5k. If so, it shows a warning
-void ImportPopup::checkAlert(CCObject* sender) {
+void ImportPopup::checkAlert(CCObject*) {
     if (this->m_objsCount < 5000) {
         return this->place();
     }
