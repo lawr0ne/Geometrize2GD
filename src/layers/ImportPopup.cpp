@@ -270,9 +270,9 @@ arc::Future<std::optional<core::json2gdo::ParseResult>> ImportPopup::parseJSON(s
     auto handle = async::runtime().spawnBlocking<Result<matjson::Value>>([path]() {
         return geode::utils::file::readJson(path);
     });
-    auto json = co_await handle;
+    auto jsonResult = co_await handle;
 
-    if (json.isErr()) {
+    if (jsonResult.isErr()) {
         geode::queueInMainThread([]() {
             Notification::create(
                 "Failed to parse the file! It may not follow the guide.",
@@ -283,12 +283,12 @@ arc::Future<std::optional<core::json2gdo::ParseResult>> ImportPopup::parseJSON(s
         co_return std::optional<core::json2gdo::ParseResult>(std::nullopt);
     }
 
-    auto unJson = json.unwrap();
+    auto json = jsonResult.unwrap();
 
-    if (auto temp = unJson["shapes"].asArray())
-        unJson = temp.unwrap();
-    else if (auto temp = unJson.asArray())
-       unJson = temp.unwrap();
+    if (auto temp = json["shapes"].asArray())
+        json = temp.unwrap();
+    else if (auto temp = json.asArray())
+       json = temp.unwrap();
     else {
         geode::queueInMainThread([]() {
             Notification::create(
@@ -300,7 +300,7 @@ arc::Future<std::optional<core::json2gdo::ParseResult>> ImportPopup::parseJSON(s
         co_return std::optional<core::json2gdo::ParseResult>(std::nullopt);
     }
 
-    auto parseResult = co_await core::json2gdo::asyncParse(unJson, options);
+    auto parseResult = co_await core::json2gdo::asyncParse(json, options);
     co_return std::optional(parseResult);
 }
 
