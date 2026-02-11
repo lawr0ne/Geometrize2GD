@@ -15,8 +15,9 @@ class $modify(MyEditorUI, EditorUI) {
 
 		if (selectedObjs.size() != 1) {
 			return FLAlertLayer::create(
-			"Info", "You have to choose <cg>exactly one</c> object to be the down-left corner of the image!",
-			"OK"
+    			"Info",
+                "You have to choose <cg>exactly one</c> object to be the down-left corner of the image!",
+    			"OK"
 			)->show();
 		}
 
