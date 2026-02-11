@@ -1,9 +1,10 @@
 #include "./jsonToGDO.h"
 
 #include <Geode/utils/async.hpp>
+#include <Geode/utils/StringBuffer.hpp>
 
 core::json2gdo::ParseResult core::json2gdo::parse(const matjson::Value &json, ParseOptions options) {
-    std::ostringstream objsString;
+    geode::utils::StringBuffer<> objsBuf;
     int objsCount = 0;
 
     for (auto obj : json) {
@@ -59,7 +60,7 @@ core::json2gdo::ParseResult core::json2gdo::parse(const matjson::Value &json, Pa
         }
 
         // Parsing objects to gd format and increasing Z Order
-        objsString << fmt::format(
+        objsBuf.append(
             "1,{},2,{},3,{},128,{},129,{},6,{},41,1,42,1,21,1010,22,1010,43,{}a{}a{}a1a1,44,{}a{}a{}a1a1,25,{},372,1;",
             m_circleID, posX, posY, scaleX, scaleY, rotation,
             h,s,v, h,s,v, options.zOrderOffset
@@ -67,7 +68,7 @@ core::json2gdo::ParseResult core::json2gdo::parse(const matjson::Value &json, Pa
         options.zOrderOffset++;
     }
 
-    return ParseResult {.objects = objsString.str(), .objectsCount = objsCount};
+    return ParseResult {.objects = objsBuf.str(), .objectsCount = objsCount};
 }
 
 arc::Future<core::json2gdo::ParseResult> core::json2gdo::asyncParse(const matjson::Value &json, ParseOptions options) {
