@@ -12,7 +12,7 @@ namespace core::json2gdo {
     const std::set<int> m_validObjTypes = {5, 3, 4, 32, 8, 16};
 
     struct ParseOptions {
-        GameObject *centerObj;
+        cocos2d::CCPoint positionOffset;
         float drawScale;
         int zOrderOffset;
     };

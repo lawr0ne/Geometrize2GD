@@ -15,8 +15,8 @@ core::json2gdo::ParseResult core::json2gdo::parse(const matjson::Value &json, Pa
         }
 
         // Setting and initializing default properties if there is missing some
-        float posX = options.centerObj->getPositionX();
-        float posY = options.centerObj->getPositionY();
+        float posX = options.positionOffset.x;
+        float posY = options.positionOffset.y;
         float scaleX = 1.f, scaleY = 1.f, rotation = 0.f;
         auto redResult = obj["color"][0].asDouble();
         auto blueResult = obj["color"][1].asDouble();
