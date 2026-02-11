@@ -12,9 +12,9 @@
 
 using namespace geode::prelude;
 
-ImportPopup* ImportPopup::create(CCArray* selectedObj) {
+ImportPopup* ImportPopup::create(CCPoint selectedObjectPos) {
     ImportPopup* ret = new ImportPopup();
-    if (ret && ret->init(selectedObj)) {
+    if (ret && ret->init(selectedObjectPos)) {
         ret->autorelease();
     } else {
         delete ret;
@@ -24,7 +24,7 @@ ImportPopup* ImportPopup::create(CCArray* selectedObj) {
 }
 
 // Setups the layer
-bool ImportPopup::init(CCArray* selectedObj) {
+bool ImportPopup::init(CCPoint selectedObjectPos) {
     if (!Popup::init(this->m_popupSize.width, this->m_popupSize.height)) return false;
 
     auto gmanager = GameManager::sharedState();
@@ -43,7 +43,7 @@ bool ImportPopup::init(CCArray* selectedObj) {
     this->m_state = State::SelectJson;
 
     this->setID("import-popup"_spr);
-    this->m_centerObj = CCArrayExt<GameObject*>(selectedObj)[0];
+    this->m_centerObjectPos = selectedObjectPos;
 
     this->m_parsingText = CCLabelBMFont::create("Parsing...", "bigFont.fnt");
     this->m_parsingText->setVisible(false);
@@ -253,7 +253,7 @@ void ImportPopup::onFilePicked(file::PickResult result) {
     )->setTag(0);
 
     core::json2gdo::ParseOptions parse_options {
-        .positionOffset = this->m_centerObj->getPosition(),
+        .positionOffset = this->m_centerObjectPos,
         .drawScale = this->m_drawScale,
         .zOrderOffset = this->m_zOrderOffset
     };

@@ -11,12 +11,17 @@ class $modify(MyEditorUI, EditorUI) {
 
 	// Checks does there are selected objects. If so, creates ImportPopup
 	void onImgToGD(CCObject*) {
-		if(this->getSelectedObjects()->count() == 1) {
-			auto importPopup = ImportPopup::create(this->getSelectedObjects());
-			CCScene::get()->addChild(importPopup);
-		} else {
-			FLAlertLayer::create("Info", "You have to choose <cg>exactly one</c> object to be the down-left corner of the image!", "OK")->show();
+	    auto selectedObjs = CCArrayExt<GameObject*>(this->getSelectedObjects());
+
+		if (selectedObjs.size() != 1) {
+			return FLAlertLayer::create(
+			"Info", "You have to choose <cg>exactly one</c> object to be the down-left corner of the image!",
+			"OK"
+			)->show();
 		}
+
+		auto importPopup = ImportPopup::create(selectedObjs[0]->getPosition());
+		CCScene::get()->addChild(importPopup);
 	}
 
 	void createMoveMenu() {

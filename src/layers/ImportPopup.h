@@ -18,7 +18,7 @@ class ImportPopup : public geode::Popup, TextInputDelegate {
     float m_drawScale = 1;
     std::string m_objsString;
     std::string m_filename;
-    GameObject* m_centerObj = nullptr;
+    cocos2d::CCPoint m_centerObjectPos;
     geode::TextInput* m_zLayerInput = nullptr;
     cocos2d::CCLabelBMFont* m_parsingText = nullptr;
     CCNode* m_parsedView = nullptr;
@@ -31,7 +31,7 @@ class ImportPopup : public geode::Popup, TextInputDelegate {
     geode::async::TaskHolder<geode::utils::file::PickResult> m_pickHolder;
     geode::async::TaskHolder<std::optional<core::json2gdo::ParseResult>> m_parseHolder;
 protected:
-    bool init(cocos2d::CCArray* selectedObj);
+    bool init(cocos2d::CCPoint selectedObjectPos);
     void onHelp(cocos2d::CCObject* sender);
     void importJSON(cocos2d::CCObject* sender);
     void onFilePicked(geode::utils::file::PickResult result);
@@ -43,5 +43,5 @@ protected:
     void place();
     void keyBackClicked() override;
 public:
-    static ImportPopup* create(cocos2d::CCArray* selectedObj);
+    static ImportPopup* create(cocos2d::CCPoint selectedObjectPos);
 };
