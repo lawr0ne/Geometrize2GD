@@ -253,7 +253,7 @@ void ImportPopup::onFilePicked(file::PickResult result) {
     )->setTag(0);
 
     core::json2gdo::ParseOptions parse_options {
-        .centerObj = this->m_centerObj,
+        .positionOffset = this->m_centerObj->getPosition(),
         .drawScale = this->m_drawScale,
         .zOrderOffset = this->m_zOrderOffset
     };
