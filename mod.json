@@ -19,11 +19,5 @@
 				"resources/spritesheets/geometrize2gd.png"
 			]
 		}
-	},
-	"incompatibilities": {
-		"sh1ne_dev.geometrize2gd": {
-			"version": "<=1.2.6",
-			"importance": "superseded"
-		}
 	}
 }
