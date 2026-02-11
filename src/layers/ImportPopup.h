@@ -8,12 +8,12 @@
 using namespace geode::prelude;
 
 class ImportPopup : public geode::Popup, TextInputDelegate {
-    enum class View {
-        SelectJsonView,
-        ParsedJsonView
-    }; // TODO: views
+    enum class State {
+        SelectJson,
+        ParsedJson
+    };
 
-protected:
+    State m_state;
     bool m_allowedExit = true;
     int m_zOrderOffset = 0;
     int m_objsCount = 0;

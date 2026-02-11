@@ -38,6 +38,8 @@ bool ImportPopup::init(CCArray* selectedObj) {
         );
     }
 
+    this->m_state = State::SelectJson;
+
     this->setID("import-popup"_spr);
     this->m_centerObj = CCArrayExt<GameObject*>(selectedObj)[0];
 
@@ -224,16 +226,14 @@ void ImportPopup::onFilePicked(file::PickResult result) {
         return;
     }
 
+    this->m_filename = path->filename().string();
+
     if (!path->string().ends_with(".json")) {
         return Notification::create(
             "Wrong file format. It must be a .json file!",
             NotificationIcon::Error
         )->show();
     }
-
-    auto fileText = fmt::format("File: {}", path->filename());
-    this->m_fileLabel->setString(fileText.c_str());
-    this->m_fileLabel->limitLabelWidth(this->m_popupSize.width - 10, 0.45f, 0.2f);
 
     enableBtns.cancel();
     this->m_selectBtn->setVisible(false);
@@ -313,10 +313,18 @@ void ImportPopup::onJSONParsed(std::optional<core::json2gdo::ParseResult> result
     this->m_parsingText->stopActionByTag(0);
 
     if (!result.has_value()) {
-        this->m_selectBtn->setVisible(true);
+        if (this->m_state == State::SelectJson) {
+            this->m_selectBtn->setVisible(true);
+        } else if (this->m_state == State::ParsedJson) {
+            this->m_parsedView->setVisible(true);
+        }
 
         return;
     }
+
+    auto fileText = fmt::format("File: {}", this->m_filename);
+    this->m_fileLabel->setString(fileText.c_str());
+    this->m_fileLabel->limitLabelWidth(this->m_popupSize.width - 10, 0.45f, 0.2f);
 
     this->m_objsString = result->objects;
     this->m_objsCount = result->objectsCount;
@@ -324,6 +332,7 @@ void ImportPopup::onJSONParsed(std::optional<core::json2gdo::ParseResult> result
     auto countText = fmt::format("Objects: {}", this->m_objsCount);
     this->m_countLabel->setCString(countText.c_str());
     this->m_parsedView->setVisible(true);
+    this->m_state = State::ParsedJson;
 
     Notification::create(
         "File is parsed.",
