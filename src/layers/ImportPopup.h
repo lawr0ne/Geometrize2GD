@@ -5,8 +5,6 @@
 #include <Geode/utils/async.hpp>
 #include <Geode/utils/file.hpp>
 
-using namespace geode::prelude;
-
 class ImportPopup : public geode::Popup, TextInputDelegate {
     enum class State {
         SelectJson,
@@ -21,22 +19,22 @@ class ImportPopup : public geode::Popup, TextInputDelegate {
     std::string m_objsString;
     std::string m_filename;
     GameObject* m_centerObj = nullptr;
-    TextInput* m_zLayerInput = nullptr;
-    CCLabelBMFont* m_parsingText = nullptr;
+    geode::TextInput* m_zLayerInput = nullptr;
+    cocos2d::CCLabelBMFont* m_parsingText = nullptr;
     CCNode* m_parsedView = nullptr;
-    CCMenu* m_parsedViewMenu = nullptr;
-    CCLabelBMFont* m_fileLabel = nullptr;
-    CCLabelBMFont* m_countLabel = nullptr;
-    TextInput* m_drawScaleInput = nullptr;
+    cocos2d::CCMenu* m_parsedViewMenu = nullptr;
+    cocos2d::CCLabelBMFont* m_fileLabel = nullptr;
+    cocos2d::CCLabelBMFont* m_countLabel = nullptr;
+    geode::TextInput* m_drawScaleInput = nullptr;
     CCMenuItemSpriteExtra* m_selectBtn = nullptr;
-    static constexpr CCSize m_popupSize = CCSize(275.f, 245.f);
-    async::TaskHolder<file::PickResult> m_pickHolder;
-    async::TaskHolder<std::optional<core::json2gdo::ParseResult>> m_parseHolder;
+    static constexpr cocos2d::CCSize m_popupSize = cocos2d::CCSize(275.f, 245.f);
+    geode::async::TaskHolder<geode::utils::file::PickResult> m_pickHolder;
+    geode::async::TaskHolder<std::optional<core::json2gdo::ParseResult>> m_parseHolder;
 protected:
     bool init(cocos2d::CCArray* selectedObj);
     void onHelp(cocos2d::CCObject* sender);
     void importJSON(cocos2d::CCObject* sender);
-    void onFilePicked(file::PickResult result);
+    void onFilePicked(geode::utils::file::PickResult result);
     void parseTextAnimationStep(CCNode* node);
     static arc::Future<std::optional<core::json2gdo::ParseResult>> parseJSON(std::filesystem::path path, core::json2gdo::ParseOptions options);
     void onJSONParsed(std::optional<core::json2gdo::ParseResult> result);

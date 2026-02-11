@@ -10,6 +10,8 @@
 #include <Geode/utils/web.hpp>
 #include <Geode/loader/Mod.hpp>
 
+using namespace geode::prelude;
+
 ImportPopup* ImportPopup::create(CCArray* selectedObj) {
     ImportPopup* ret = new ImportPopup();
     if (ret && ret->init(selectedObj)) {
