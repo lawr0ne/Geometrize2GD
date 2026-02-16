@@ -1,6 +1,6 @@
 #include "ImportPopup.h"
 
-#include "../types/ScopeExit.hpp"
+#include "../utils/ScopeExit.hpp"
 #include <Geode/ui/Notification.hpp>
 #include <Geode/binding/GameManager.hpp>
 #include <Geode/binding/ButtonSprite.hpp>
