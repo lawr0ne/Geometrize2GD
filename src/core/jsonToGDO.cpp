@@ -26,9 +26,11 @@ core::json2gdo::ParseResult core::json2gdo::parse(const matjson::Value &json, Pa
         if (auto objType = obj["type"].asInt()) {
             if (!m_validObjTypes.contains(objType.unwrap()))
                 continue;
-            else
-                objsCount++;
+        } else {
+            continue;
         }
+
+        objsCount++;
 
         if (auto posXResult = obj["data"][0].asDouble()) {
             posX += posXResult.unwrap() * options.drawScale;
