@@ -180,7 +180,7 @@ void ImportPopup::onHelp(CCObject*) {
         "No", "Yes",
         [](auto* self, bool btn2) {
             if (btn2)
-                geode::utils::web::openLinkInBrowser("https://github.com/lawr0ne/Geometrize2GD/blob/main/GUIDE.md");
+                geode::utils::web::openLinkInBrowser("https://github.com/lawr0ne/Geometrize2GD/wiki/Usage-Guide");
         }
     );
 }

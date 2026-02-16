@@ -1,7 +1,7 @@
 # Geometrize2GD
 ##### This is an unofficial fork, which continues maintanence over the original mod.
 
-### [User Guide](https://github.com/lawr0ne/Geometrize2GD/blob/main/GUIDE.md)
+### [Usage Guide](https://github.com/lawr0ne/Geometrize2GD/wiki/Usage-Guide)
 
 ## Credits
 - sh1ne_dev (Author of the mod)

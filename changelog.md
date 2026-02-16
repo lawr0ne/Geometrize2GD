@@ -1,3 +1,6 @@
+# 1.1.2
+- Moved the guide to Github Wiki.
+
 # 1.1.1
 - Asynchronous file loading.
 - Refactored the mod.
