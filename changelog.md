@@ -1,4 +1,4 @@
-# 1.1.0
+# 1.1.1
 - Asynchronous file loading.
 - Refactored the mod.
 - New animation for the Popup.
