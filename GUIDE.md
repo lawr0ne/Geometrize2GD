@@ -1,6 +1,6 @@
 # User Guide
 
-### Valid from update v1.2.0
+### Valid from update v1.0.0
 
 ## Converting our image to **.json** file.
 

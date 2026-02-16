@@ -1,16 +1,20 @@
 #include "ImportPopup.h"
 
-#include "Geode/cocos/cocoa/CCObject.h"
-#include "Geode/cocos/sprite_nodes/CCSprite.h"
-#include "Geode/ui/Popup.hpp"
-#include "Geode/utils/file.hpp"
-#include <arc/future/Future.hpp>
-#include "../types/ScopeExit.h"
-#include "Geode/utils/web.hpp"
+#include "../utils/ScopeExit.hpp"
+#include <Geode/ui/Notification.hpp>
+#include <Geode/binding/GameManager.hpp>
+#include <Geode/binding/ButtonSprite.hpp>
+#include <Geode/binding/LevelEditorLayer.hpp>
+#include <Geode/binding/UndoObject.hpp>
+#include <Geode/binding/EditorUI.hpp>
+#include <Geode/utils/web.hpp>
+#include <Geode/loader/Mod.hpp>
 
-ImportPopup* ImportPopup::create(CCArray* selectedObj) {
+using namespace geode::prelude;
+
+ImportPopup* ImportPopup::create(CCPoint selectedObjectPos) {
     ImportPopup* ret = new ImportPopup();
-    if (ret && ret->init(selectedObj)) {
+    if (ret && ret->init(selectedObjectPos)) {
         ret->autorelease();
     } else {
         delete ret;
@@ -20,58 +24,83 @@ ImportPopup* ImportPopup::create(CCArray* selectedObj) {
 }
 
 // Setups the layer
-bool ImportPopup::init(CCArray* selectedObj) {
+bool ImportPopup::init(CCPoint selectedObjectPos) {
     if (!Popup::init(this->m_popupSize.width, this->m_popupSize.height)) return false;
 
-    this->m_centerObj = CCArrayExt<GameObject*>(selectedObj)[0];
+    auto gmanager = GameManager::sharedState();
+    auto fast_menu = gmanager->getGameVariable("0168");
+
+    if (!fast_menu) {
+        this->m_mainLayer->setScale(0.5f);
+
+        this->m_mainLayer->runAction(
+            CCEaseExponentialOut::create(
+                CCScaleTo::create(0.3f, 1)
+            )
+        );
+    }
+
+    this->m_state = State::SelectJson;
+
+    this->setID("import-popup"_spr);
+    this->m_centerObjectPos = selectedObjectPos;
+
+    this->m_parsingText = CCLabelBMFont::create("Parsing...", "bigFont.fnt");
+    this->m_parsingText->setVisible(false);
+    this->m_parsingText->setPosition(this->m_popupSize / 2);
+    this->m_parsingText->setScale(0.6f);
+
+    this->m_parsedView = CCNode::create();
+    this->m_parsedView->setID("parsed-view");
+    this->m_parsedView->setContentSize(this->m_popupSize);
+    this->m_parsedView->setVisible(false);
+
+    this->m_parsedViewMenu = CCMenu::create();
+    this->m_parsedViewMenu->setID("parsed-view-menu");
+    this->m_parsedViewMenu->setContentSize(this->m_popupSize);
+    this->m_parsedViewMenu->setPosition({0, 0});
 
     this->m_countLabel = CCLabelBMFont::create("Objects: 0", "bigFont.fnt");
     this->m_countLabel->setPosition({this->m_popupSize.width / 2, this->m_popupSize.height / 2 - 65.f});
-    this->m_countLabel->setVisible(false);
     this->m_countLabel->setID("count-label");
     this->m_countLabel->setScale(0.4);
 
     auto drawLabel = CCLabelBMFont::create("Scale:", "bigFont.fnt");
     drawLabel->setPosition({this->m_popupSize.width / 2 + 65.f, this->m_popupSize.height / 2 + 15.f});
-    drawLabel->setVisible(false);
     drawLabel->setID("draw-scale-label");
     drawLabel->setScale(0.5);
 
     auto zLayerLabel = CCLabelBMFont::create("Z-Layer\nOffset:", "bigFont.fnt");
     zLayerLabel->setPosition({this->m_popupSize.width / 2 - 65.f, this->m_popupSize.height / 2 + 15.f});
-    zLayerLabel->setVisible(false);
     zLayerLabel->setID("zlayer-label");
     zLayerLabel->setScale(0.325);
 
-    this->m_fileLabel = CCLabelBMFont::create("", "bigFont.fnt");
+    this->m_fileLabel = CCLabelBMFont::create("File: ", "bigFont.fnt");
     this->m_fileLabel->setColor({0,255,0});
     this->m_fileLabel->setPosition(this->m_popupSize.width / 2, this->m_popupSize.height / 2 + 60.f);
     this->m_fileLabel->setScale(0.45);
     this->m_fileLabel->setID("file-label");
-    this->m_fileLabel->setVisible(false);
 
-    auto importJsonSpr = ButtonSprite::create("Select File");
+    auto importJsonSpr = ButtonSprite::create("Pick a File");
     this->m_selectBtn = CCMenuItemSpriteExtra::create(
         importJsonSpr, this, menu_selector(ImportPopup::importJSON)
     );
-    this->m_selectBtn->setID("import-btn");
+    this->m_selectBtn->setID("pick-btn");
     this->m_selectBtn->setPosition(this->m_selectBtn->getPosition() + this->m_popupSize / 2);
 
-    auto changeJsonSpr = ButtonSprite::create("Change File");
-    this->m_changeBtn = CCMenuItemSpriteExtra::create(
+    auto changeJsonSpr = ButtonSprite::create("Pick Another");
+    auto changeBtn = CCMenuItemSpriteExtra::create(
         changeJsonSpr, this, menu_selector(ImportPopup::importJSON)
     );
-    this->m_changeBtn->setVisible(false);
-    this->m_changeBtn->setPosition({this->m_popupSize.width / 2, this->m_popupSize.height / 2 + 90.f});
-    this->m_changeBtn->setID("change-btn");
+    changeBtn->setPosition({this->m_popupSize.width / 2, this->m_popupSize.height / 2 + 90.f});
+    changeBtn->setID("pick-btn");
 
-    auto parseSpr =  ButtonSprite::create("Create");
+    auto parseSpr = ButtonSprite::create("Place");
     auto parseBtn = CCMenuItemSpriteExtra::create(
         parseSpr, this, menu_selector(ImportPopup::checkAlert)
     );
     parseBtn->setPosition({ImportPopup::m_popupSize.width / 2, ImportPopup::m_popupSize.height / 2 - 95.f});
-    parseBtn->setVisible(false);
-    parseBtn->setID("convert-btn");
+    parseBtn->setID("place-btn");
 
     auto helpSpr = CCSprite::createWithSpriteFrameName("GJ_helpBtn_001.png");
     auto helpBtn = CCMenuItemSpriteExtra::create(
@@ -85,7 +114,6 @@ bool ImportPopup::init(CCArray* selectedObj) {
     this->m_drawScaleInput->setString("1");
     this->m_drawScaleInput->setID("draw-input");
     this->m_drawScaleInput->setPosition({this->m_popupSize.width / 2 + 65.f, this->m_popupSize.height / 2 - 15.f});
-    this->m_drawScaleInput->setVisible(false);
     this->m_drawScaleInput->getInputNode()->setLabelPlaceholderScale(0.5);
     this->m_drawScaleInput->getInputNode()->setMaxLabelScale(0.6);
     this->m_drawScaleInput->setDelegate(static_cast<TextInputDelegate*>(this));
@@ -96,198 +124,246 @@ bool ImportPopup::init(CCArray* selectedObj) {
     this->m_zLayerInput->setString("0");
     this->m_zLayerInput->setID("zlayer-input");
     this->m_zLayerInput->setPosition({this->m_popupSize.width / 2 - 65.f, this->m_popupSize.height / 2 - 15.f});
-    this->m_zLayerInput->setVisible(false);
     this->m_zLayerInput->getInputNode()->setLabelPlaceholderScale(0.6);
     this->m_zLayerInput->getInputNode()->setMaxLabelScale(0.6);
     this->m_zLayerInput->setDelegate(static_cast<TextInputDelegate*>(this));
 
-    this->m_mainLayer->addChild(this->m_fileLabel);
-    this->m_mainLayer->addChild(this->m_countLabel);
-    this->m_mainLayer->addChild(drawLabel);
-    this->m_mainLayer->addChild(zLayerLabel);
+    this->m_parsedView->addChild(this->m_fileLabel);
+    this->m_parsedView->addChild(this->m_countLabel);
+    this->m_parsedView->addChild(drawLabel);
+    this->m_parsedView->addChild(zLayerLabel);
 
     this->m_buttonMenu->addChild(this->m_selectBtn);
-    this->m_buttonMenu->addChild(this->m_changeBtn);
-    this->m_buttonMenu->addChild(parseBtn);
-    this->m_buttonMenu->addChild(this->m_drawScaleInput);
-    this->m_buttonMenu->addChild(this->m_zLayerInput);
     this->m_buttonMenu->addChild(helpBtn);
+
+    this->m_parsedViewMenu->addChild(changeBtn);
+    this->m_parsedViewMenu->addChild(parseBtn);
+    this->m_parsedViewMenu->addChild(this->m_drawScaleInput);
+    this->m_parsedViewMenu->addChild(this->m_zLayerInput);
+
+    this->m_mainLayer->addChild(this->m_parsingText);
+    this->m_mainLayer->addChild(this->m_parsedView);
+    this->m_parsedView->addChild(this->m_parsedViewMenu);
     return true;
 }
 
-void ImportPopup::onHelp(CCObject* sender) {
+void ImportPopup::parseTextAnimationStep(CCNode* node) {
+    static unsigned short step = 0;
+    CCLabelBMFont* text = static_cast<CCLabelBMFont*>(node);
+
+    switch (step) {
+        case 0:
+            text->setCString("Parsing");
+            break;
+        case 1:
+            text->setCString("Parsing.");
+            break;
+        case 2:
+            text->setCString("Parsing..");
+            break;
+        case 3:
+            text->setCString("Parsing...");
+            break;
+    }
+
+    if (step == 3) {
+        step = 0;
+        return;
+    }
+
+    step++;
+}
+
+void ImportPopup::onHelp(CCObject*) {
     geode::createQuickPopup(
         "Help", "Do you want to open the guide?",
-        "Yes", "No",
+        "No", "Yes",
         [](auto* self, bool btn2) {
-            if (!btn2)
+            if (btn2)
                 geode::utils::web::openLinkInBrowser("https://github.com/lawr0ne/Geometrize2GD/blob/main/GUIDE.md");
         }
     );
 }
 
-void ImportPopup::importJSON(CCObject* sender) {
+void ImportPopup::importJSON(CCObject*) {
     // Setting file pick options
     file::FilePickOptions::Filter json_file = {
         .description = "Geometrize JSON Output",
-        .files = { "*.json"}
+        .files = {"*.json"}
     };
     file::FilePickOptions options = {
-        std::nullopt,
-        {json_file}
+        .defaultPath = std::nullopt,
+        .filters = {json_file}
     };
+
     this->m_buttonMenu->setEnabled(false);
+    this->m_parsedViewMenu->setEnabled(false);
+    this->m_allowedExit = false;
 
     this->m_pickHolder.spawn(
         file::pick(file::PickMode::OpenFile, options),
         [this](file::PickResult result) {
-            auto enableBtns = ScopeExit([this]() {
-                this->m_buttonMenu->setEnabled(true);
-            });
+            this->onFilePicked(result);
+        }
+    );
+}
 
-            // Checks does Result is empty or not
-            if (result.isErr()) {
-                return Notification::create(
-                    fmt::format("Failed to open the file. Error: {}", result.err()),
-                    NotificationIcon::Error
-                )->show();
-            }
+void ImportPopup::onFilePicked(file::PickResult result) {
+    auto enableBtns = ScopeExit([this]() {
+        this->m_buttonMenu->setEnabled(true);
+        this->m_parsedViewMenu->setEnabled(true);
+        this->m_allowedExit = true;
+    });
 
-            auto path = result.unwrap();
-            if (!path.has_value()) {
-                return;
-            }
+    // Checks does Result is empty or not
+    if (result.isErr()) {
+        return Notification::create(
+            fmt::format("Failed to open the file. Error: {}", result.err()),
+            NotificationIcon::Error
+        )->show();
+    }
 
-            if (path->string().ends_with(".json")) {
-                // Loading json
-                auto json = geode::utils::file::readJson(*path);
-                if (json) {
-                    this->m_jsonSets = json.unwrap();
-                }
+    auto path = result.unwrap();
+    if (!path.has_value()) {
+        return;
+    }
 
-                if (auto temp = this->m_jsonSets["shapes"].asArray())
-                    this->m_jsonSets = temp.unwrap();
-                else if (auto temp = this->m_jsonSets.asArray())
-                    this->m_jsonSets = temp.unwrap();
-                else {
-                    return Notification::create(
-                        "Failed to parse the file! It may be empty.",
-                        NotificationIcon::Error
-                    )->show();
-                }
+    this->m_filename = path->filename().string();
 
-                // Counts the objects
-                for (auto obj : this->m_jsonSets) {
-                    auto objType = obj["type"].asInt();
-                    auto objScore = obj["score"].asDouble();
+    if (!path->string().ends_with(".json")) {
+        return Notification::create(
+            "Wrong file format. It must be a .json file!",
+            NotificationIcon::Error
+        )->show();
+    }
 
-                    if (!objType)
-                        continue;
+    enableBtns.cancel();
+    this->m_selectBtn->setVisible(false);
+    this->m_parsedView->setVisible(false);
 
-                    if (!objScore)
-                        continue;
+    this->m_parsingText->setVisible(true);
+    this->m_parsingText->runAction(
+        CCRepeatForever::create(
+            CCSequence::create(
+                CCCallFuncN::create(this->m_parsingText, callfuncN_selector(ImportPopup::parseTextAnimationStep)),
+                CCDelayTime::create(0.25f),
+                nullptr
+            )
+        )
+    )->setTag(0);
 
-                    if (!this->m_validTypes.contains(objType.unwrap()))
-                        continue;
+    core::json2gdo::ParseOptions parse_options {
+        .positionOffset = this->m_centerObjectPos,
+        .drawScale = this->m_drawScale,
+        .zOrderOffset = this->m_zOrderOffset
+    };
 
-                    if (objScore.unwrap() <= 0)
-                        continue;
+    this->m_parseHolder.spawn(
+        ImportPopup::parseJSON(*path, parse_options),
+        [this](std::optional<core::json2gdo::ParseResult> result) {
+            this->onJSONParsed(result);
+        }
+    );
+}
 
-                    this->m_objsCount++;
-                }
+arc::Future<std::optional<core::json2gdo::ParseResult>> ImportPopup::parseJSON(std::filesystem::path path, core::json2gdo::ParseOptions options) {
+    auto handle = async::runtime().spawnBlocking<Result<matjson::Value>>([path]() {
+        return geode::utils::file::readJson(path);
+    });
+    auto jsonResult = co_await handle;
 
-                auto countText = fmt::format("Objects: {}", this->m_objsCount);
-                auto fileText = fmt::format("File: {}", path->filename());
-                this->m_countLabel->setString(countText.c_str());
-                this->m_fileLabel->setString(fileText.c_str());
-                this->m_fileLabel->limitLabelWidth(this->m_popupSize.width - 10, 0.45f, 0.2f);
-                this->m_selectBtn->setVisible(false);
-                this->m_buttonMenu->getChildByID("change-btn")->setVisible(true);
-                this->m_mainLayer->getChildByID("draw-scale-label")->setVisible(true);
-                this->m_mainLayer->getChildByID("zlayer-label")->setVisible(true);
-                this->m_buttonMenu->getChildByID("convert-btn")->setVisible(true);
-                this->m_fileLabel->setVisible(true);
-                this->m_countLabel->setVisible(true);
-                this->m_zLayerInput->setVisible(true);
-                this->m_drawScaleInput->setVisible(true);
-                this->m_objsCount = 0;
+    if (jsonResult.isErr()) {
+        geode::queueInMainThread([]() {
+            Notification::create(
+                "Failed to parse the file! It may not follow the guide.",
+                NotificationIcon::Error
+            )->show();
+        });
 
-                Notification::create(
-                    "File is imported",
-                    NotificationIcon::Success
-                )->show();
-            } else {
-                Notification::create(
-                    "Wrong file format. It must be a .json file!",
-                    NotificationIcon::Error
-                )->show();
+        co_return std::optional<core::json2gdo::ParseResult>(std::nullopt);
+    }
+
+    auto json = jsonResult.unwrap();
+
+    if (auto temp = json["shapes"].asArray())
+        json = temp.unwrap();
+    else if (auto temp = json.asArray())
+       json = temp.unwrap();
+    else {
+        geode::queueInMainThread([]() {
+            Notification::create(
+                "Failed to parse the file! It may not follow the guide.",
+                NotificationIcon::Error
+            )->show();
+        });
+
+        co_return std::optional<core::json2gdo::ParseResult>(std::nullopt);
+    }
+
+    auto parseResult = co_await core::json2gdo::asyncParse(json, options);
+    co_return std::optional(parseResult);
+}
+
+void ImportPopup::onJSONParsed(std::optional<core::json2gdo::ParseResult> result) {
+    auto enableBtns = ScopeExit([this]() {
+        this->m_buttonMenu->setEnabled(true);
+        this->m_parsedViewMenu->setEnabled(true);
+        this->m_allowedExit = true;
+    });
+
+    this->m_parsingText->setVisible(false);
+    this->m_parsingText->stopActionByTag(0);
+
+    if (!result.has_value()) {
+        if (this->m_state == State::SelectJson) {
+            this->m_selectBtn->setVisible(true);
+        } else if (this->m_state == State::ParsedJson) {
+            this->m_parsedView->setVisible(true);
+        }
+
+        return;
+    }
+
+    auto fileText = fmt::format("File: {}", this->m_filename);
+    this->m_fileLabel->setString(fileText.c_str());
+    this->m_fileLabel->limitLabelWidth(this->m_popupSize.width - 10, 0.45f, 0.2f);
+
+    this->m_objsString = result->objects;
+    this->m_objsCount = result->objectsCount;
+
+    auto countText = fmt::format("Objects: {}", this->m_objsCount);
+    this->m_countLabel->setCString(countText.c_str());
+    this->m_parsedView->setVisible(true);
+    this->m_state = State::ParsedJson;
+
+    Notification::create(
+        "File is parsed.",
+        NotificationIcon::Success
+    )->show();
+}
+
+// Checks does object count is bigger than 5k. If so, it shows a warning
+void ImportPopup::checkAlert(CCObject*) {
+    if (this->m_objsCount < 5000) {
+        return this->place();
+    }
+
+    geode::createQuickPopup(
+        "Alert",
+        "This will place more than <cy>5000 objects</c>\nAre you sure?",
+        "No", "Yes",
+        [this](auto, bool btn2) {
+            if (btn2) {
+                this->place();
             }
         }
     );
 }
 
-// Parses the objects from Geometrize to GD format and places the objects inside GD Editor
-void ImportPopup::parseAndPlace() {
-    for (auto obj : this->m_jsonSets) {
-        // Avoiding objects with zero score
-        auto objScore = obj["score"].asDouble();
-        if (!objScore || objScore.unwrap() <= 0) {
-            continue;
-        }
-
-        // Setting and initializing default properties if there is missing some
-        float posX = this->m_centerObj->getPositionX();
-        float posY = this->m_centerObj->getPositionY();
-        float scaleX = 1.f, scaleY = 1.f, rotation = 0.f;
-        auto redResult = obj["color"][0].asDouble();
-        auto blueResult = obj["color"][1].asDouble();
-        auto greenResult = obj["color"][2].asDouble();
-
-        // Validating types
-        if (auto objType = obj["type"].asInt())
-            if (!this->m_validTypes.contains(objType.unwrap()))
-                continue;
-
-        if (auto posXResult = obj["data"][0].asDouble()) {
-            posX = posXResult.unwrap() * this->m_drawScale + this->m_centerObj->getPositionX();
-        }
-        if (auto posYResult = obj["data"][1].asDouble()) {
-            posY = posYResult.unwrap() * this->m_drawScale + this->m_centerObj->getPositionY();
-        }
-        if (auto scaleXResult = obj["data"][2].asDouble()) {
-            scaleX = scaleXResult.unwrap() * this->m_drawScale / 4 * 0.16;
-        }
-        if (auto scaleYResult = obj["data"][3].asDouble()) {
-            scaleY = scaleYResult.unwrap() * this->m_drawScale / 4 * 0.16;
-        } else {
-            scaleY = scaleX;
-        }
-        if (auto rotationResult = obj["data"][4].asDouble()) {
-            rotation = -rotationResult.unwrap();
-        }
-
-        // Parsing colors
-        float h = 0.f, s = 0.f, v = 0.f;
-        if (redResult && blueResult && greenResult) {
-            this->rgbToHsv(
-                redResult.unwrap() / 255.f,
-                blueResult.unwrap() / 255.f,
-                greenResult.unwrap() / 255.f,
-                h,s,v
-            );
-        }
-
-        // Parsing objects to gd format and increasing Z Order
-        this->m_objsString << fmt::format(
-            "1,{},2,{},3,{},128,{},129,{},6,{},41,1,42,1,21,1010,22,1010,43,{}a{}a{}a1a1,44,{}a{}a{}a1a1,25,{},372,1;",
-            m_CircleId, posX, posY, scaleX, scaleY, rotation,
-            h,s,v, h,s,v, this->m_zOrder
-        );
-        this->m_zOrder++;
-    }
-
-    // Checking if there are no parsed objects
-    if (this->m_objsString.str().empty()) {
+// Places the objects inside GD Editor
+void ImportPopup::place() {
+    // Checking does it has parsed any objects
+    if (this->m_objsString.empty()) {
         Notification::create(
             "No objects added.",
             NotificationIcon::Error
@@ -303,7 +379,7 @@ void ImportPopup::parseAndPlace() {
     activeEditorUI->onDeleteSelected(nullptr);
 
     // Create objects from string and flip Y-axis
-    auto objectsArray = activeEditorLayer->createObjectsFromString(this->m_objsString.str().c_str(), true, true);
+    auto objectsArray = activeEditorLayer->createObjectsFromString(this->m_objsString.c_str(), true, true);
     activeEditorUI->flipObjectsY(objectsArray);
 
     // Add to undo stack and select objects
@@ -316,58 +392,9 @@ void ImportPopup::parseAndPlace() {
         "Successfully converted to gd objects!",
         NotificationIcon::Success
     )->show();
+
+    // Closing the popup
     this->keyBackClicked();
-}
-
-void ImportPopup::rgbToHsv(float fR, float fG, float fB, float& fH, float& fS, float& fV) {
-    // This function is took from https://gist.github.com/fairlight1337/4935ae72bcbcc1ba5c72#file-hsvrgb-cpp-L53
-    float fCMax = std::max(std::max(fR, fG), fB);
-    float fCMin = std::min(std::min(fR, fG), fB);
-    float fDelta = fCMax - fCMin;
-
-    if(fDelta > 0) {
-        if(fCMax == fR) {
-            fH = 60 * (fmod(((fG - fB) / fDelta), 6));
-        } else if(fCMax == fG) {
-            fH = 60 * (((fB - fR) / fDelta) + 2);
-        } else if(fCMax == fB) {
-            fH = 60 * (((fR - fG) / fDelta) + 4);
-        }
-
-        if (fCMax > 0) {
-            fS = fDelta / fCMax;
-        } else {
-            fS = 0;
-        }
-
-        fV = fCMax;
-    } else {
-        fH = 0;
-        fS = 0;
-        fV = fCMax;
-    }
-
-    if(fH < 0) {
-        fH = 360 + fH;
-    }
-}
-
-// Checks does object count is bigger than 5k. If so, it shows a warning
-void ImportPopup::checkAlert(CCObject* sender) {
-    if (this->m_objsCount > 5000) {
-        geode::createQuickPopup(
-            "Alert",
-            "This will place more than <cy>5000 objects</c>\nAre you sure?",
-            "No", "Yes",
-            [this](auto, bool btn2) {
-                if (btn2) {
-                    this->parseAndPlace();
-                }
-            }
-        );
-    } else {
-        this->parseAndPlace();
-    }
 }
 
 // Checks the value inside inputs to avoid unwanted crashes
@@ -377,19 +404,29 @@ void ImportPopup::textChanged(CCTextInputNode *p0) {
         if (num.isErr()) {
             return p0->setLabelNormalColor(ccc3(255,0,0));
         }
+
         auto numUn = num.unwrap();
         if (numUn <= 0) {
             return p0->setLabelNormalColor(ccc3(255,0,0));
         }
+
         p0->setLabelNormalColor(ccc3(255,255,255));
         this->m_drawScale = numUn;
     } else if (p0 == this->m_zLayerInput->getInputNode()) {
         auto num = utils::numFromString<int>(p0->getString());
+
         if (num.isErr()) {
             return p0->setLabelNormalColor(ccc3(255,0,0));
         }
+
         auto numUn = num.unwrap();
         p0->setLabelNormalColor(ccc3(255,255,255));
-        this->m_zOrder = numUn;
+        this->m_zOrderOffset = numUn;
+    }
+}
+
+void ImportPopup::keyBackClicked() {
+    if (this->m_allowedExit) {
+        Popup::keyBackClicked();
     }
 }
