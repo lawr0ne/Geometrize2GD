@@ -5,7 +5,7 @@ labels: ["bug"]
 body:
   - type: markdown
     attributes:
-      value: "Please fill this form to help me understand your issue.\nAlso, for God's sake, please read the guide on the GitHub Wiki again before creating an issue."
+      value: "Please fill this form to help me understand your issue.\n\n**Also, for God's sake, please read the guide on the GitHub Wiki again before creating an issue.**"
   - type: dropdown
     id: platform
     attributes:
